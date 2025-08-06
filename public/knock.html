@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knock to Join - Anonymice Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="knock-card">
+            <h1>🔨 Knock to Join</h1>
+            <p>Enter any name you'd like to use for this chat session</p>
+            
+            <form id="knockForm" class="knock-form">
+                <div class="input-group">
+                    <label for="name">Your Name:</label>
+                    <input type="text" id="name" placeholder="Enter any name..." maxlength="20" required>
+                </div>
+                <button type="submit" class="btn btn-primary">🔨 Knock & Join</button>
+            </form>
+            
+            <div id="status" class="status"></div>
+            
+            <div class="back-link">
+                <a href="/">← Back to Home</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const knockForm = document.getElementById('knockForm');
+        const nameInput = document.getElementById('name');
+        const statusDiv = document.getElementById('status');
+
+        knockForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = nameInput.value.trim();
+            if (!name) {
+                showStatus('Please enter a name', 'error');
+                return;
+            }
+
+            showStatus('🔨 Knocking...', 'info');
+            
+            try {
+                const response = await fetch('/api/knock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus(`✅ Assigned to room ${data.roomId} as ${data.name}`, 'success');
+                    setTimeout(() => {
+                        window.location.href = `/chat?room=${data.roomId}&name=${encodeURIComponent(data.name)}`;
+                    }, 2000);
+                } else {
+                    showStatus('❌ No rooms available. Please try again later.', 'error');
+                }
+            } catch (error) {
+                showStatus('❌ Connection error. Please try again.', 'error');
+            }
+        });
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+    </script>
+</body>
+</html> 
