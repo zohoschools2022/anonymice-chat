@@ -28,12 +28,14 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
+        const socket = io();
         const knockForm = document.getElementById('knockForm');
         const nameInput = document.getElementById('name');
         const statusDiv = document.getElementById('status');
-
-        knockForm.addEventListener('submit', async (e) => {
+    
+        knockForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
             const name = nameInput.value.trim();
@@ -41,37 +43,26 @@
                 showStatus('Please enter a name', 'error');
                 return;
             }
-
+    
             showStatus('🔨 Knocking...', 'info');
-            
-            try {
-                const response = await fetch('/api/knock', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ name })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showStatus(`✅ Assigned to room ${data.roomId} as ${data.name}`, 'success');
-                    setTimeout(() => {
-                        window.location.href = `/chat?room=${data.roomId}&name=${encodeURIComponent(data.name)}`;
-                    }, 2000);
-                } else {
-                    showStatus('❌ No rooms available. Please try again later.', 'error');
-                }
-            } catch (error) {
-                showStatus('❌ Connection error. Please try again.', 'error');
-            }
+            socket.emit('knock', { name });
         });
-
+    
+        socket.on('room-assigned', (data) => {
+            showStatus(`✅ Assigned to room ${data.roomId} as ${data.name}`, 'success');
+            setTimeout(() => {
+                window.location.href = `/chat?room=${data.roomId}&name=${encodeURIComponent(data.name)}`;
+            }, 2000);
+        });
+    
+        socket.on('no-rooms-available', () => {
+            showStatus('❌ No rooms available. Please try again later.', 'error');
+        });
+    
         function showStatus(message, type) {
             statusDiv.textContent = message;
             statusDiv.className = `status ${type}`;
         }
     </script>
-</body>
+    </body>
 </html> 
