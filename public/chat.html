@@ -31,6 +31,7 @@
         </div>
     </div>
 
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
@@ -49,11 +50,13 @@
     
         participantNameSpan.textContent = participantName;
     
+        console.log('Attempting to join room:', roomId);
+    
         // Join the room
         socket.emit('join-room', { roomId });
     
         socket.on('room-joined', (data) => {
-            console.log('Joined room:', data);
+            console.log('Successfully joined room:', data);
             
             // Clear loading message
             messagesContainer.innerHTML = '';
@@ -66,6 +69,14 @@
             } else {
                 addSystemMessage('Chat started. You can now send messages!');
             }
+        });
+    
+        socket.on('room-not-found', () => {
+            console.log('Room not found');
+            addSystemMessage('Room not found. Please knock again.');
+            setTimeout(() => {
+                window.location.href = '/knock';
+            }, 2000);
         });
     
         socket.on('new-message', (message) => {
@@ -118,5 +129,5 @@
         // Global function for button onclick
         window.sendMessage = sendMessage;
     </script>
-    </body>
+</body>
 </html> 

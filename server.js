@@ -139,18 +139,33 @@ io.on('connection', (socket) => {
 
     // Handle room join requests
     socket.on('join-room', (data) => {
-        const roomId = data.roomId;
+        const roomId = parseInt(data.roomId);
         const room = chatRooms.get(roomId);
+        
+        console.log('Join room request:', { roomId, room, allRooms: Array.from(chatRooms.keys()) });
+        
         if (room) {
+            // Update the participant's connection
+            activeConnections.set(socket.id, { 
+                type: 'participant', 
+                name: room.participant.name, 
+                roomId: roomId 
+            });
+            
             socket.join(`room-${roomId}`);
             socket.emit('room-joined', { 
                 roomId, 
                 messages: room.messages,
                 participant: room.participant
             });
+            
+            console.log(`Participant ${room.participant.name} joined room ${roomId}`);
+        } else {
+            console.log(`Room ${roomId} not found`);
+            socket.emit('room-not-found');
         }
     });
-
+    
     // Handle disconnection
     socket.on('disconnect', () => {
         const connection = activeConnections.get(socket.id);
