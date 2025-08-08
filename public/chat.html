@@ -53,7 +53,7 @@
         console.log('Attempting to join room:', roomId);
     
         // Join the room
-        socket.emit('join-room', { roomId });
+        socket.emit('join-room', { roomId, participantName });
     
         socket.on('room-joined', (data) => {
             console.log('Successfully joined room:', data);
