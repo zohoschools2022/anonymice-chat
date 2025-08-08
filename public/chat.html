@@ -47,7 +47,6 @@
     </div>
 
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const messagesContainer = document.getElementById('messages');
@@ -114,9 +113,6 @@
     autoResize();
     emojiPanel.hidden = true;
   }
-
-  // ... keep your existing listeners below
-</script>
 
         if (!roomId || !participantName) {
             window.location.href = '/knock';

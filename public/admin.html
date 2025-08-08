@@ -105,11 +105,6 @@
 
             // Handle enter key
             const input = chatWindow.querySelector(`#input-${roomId}`);
-            input.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendMessage(roomId);
-                }
-            });
         }
 
         function removeChatWindow(roomId) {
