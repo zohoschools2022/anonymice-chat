@@ -30,6 +30,9 @@
         const chatGrid = document.querySelector('.chat-grid');
         const activeRoomsSpan = document.getElementById('activeRooms');
         
+        textarea.addEventListener('focus', () => { panel.hidden = true; });
+        textarea.addEventListener('keydown', () => { panel.hidden = true; });
+
         let activeRooms = 0;
         let chatWindows = {};
 

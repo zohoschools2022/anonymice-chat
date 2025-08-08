@@ -64,6 +64,9 @@
   const emojiPanel = document.getElementById('emojiPanel');
   const sendBtn = document.getElementById('sendBtn');
 
+  messageInput.addEventListener('focus', () => { emojiPanel.hidden = true; });
+messageInput.addEventListener('keydown', () => { emojiPanel.hidden = true; });
+
   function insertAtCursor(textarea, text) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;

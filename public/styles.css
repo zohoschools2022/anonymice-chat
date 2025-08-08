@@ -529,7 +529,7 @@ body {
   .emoji-panel {
     position: absolute;
     left: 10px;
-    bottom: 50px;
+    bottom: calc(100% + 8px); /* sit ABOVE the input wrapper */
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
@@ -538,8 +538,9 @@ body {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     gap: 4px;
-    z-index: 10;
+    z-index: 1000; /* ensure on top of everything */
   }
+
   .emoji-panel .emoji {
     background: transparent;
     border: none;
