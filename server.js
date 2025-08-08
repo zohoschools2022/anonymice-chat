@@ -88,6 +88,18 @@ io.on('connection', (socket) => {
             });
 
             socket.join(`room-${roomId}`);
+            
+            // Add welcome message
+            const welcomeMessage = {
+                id: Date.now(),
+                text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
+                sender: 'System',
+                timestamp: new Date().toLocaleTimeString(),
+                isAdmin: false
+            };
+            
+            chatRooms.get(roomId).messages.push(welcomeMessage);
+            
             socket.emit('room-assigned', { roomId, name: participantName });
             
             // Notify admin
@@ -97,10 +109,12 @@ io.on('connection', (socket) => {
             });
 
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
+            console.log(`Current rooms:`, Array.from(chatRooms.keys()));
         } else {
             socket.emit('no-rooms-available');
         }
     });
+
 
     // Handle chat messages
     socket.on('send-message', (data) => {
@@ -142,16 +156,10 @@ io.on('connection', (socket) => {
         const roomId = parseInt(data.roomId);
         const room = chatRooms.get(roomId);
         
-        console.log('Join room request:', { roomId, room, allRooms: Array.from(chatRooms.keys()) });
+        console.log('Join room request:', { roomId, roomExists: !!room, allRooms: Array.from(chatRooms.keys()) });
         
         if (room) {
-            // Update the participant's connection
-            activeConnections.set(socket.id, { 
-                type: 'participant', 
-                name: room.participant.name, 
-                roomId: roomId 
-            });
-            
+            // Don't overwrite existing connection, just join the room
             socket.join(`room-${roomId}`);
             socket.emit('room-joined', { 
                 roomId, 
@@ -159,13 +167,13 @@ io.on('connection', (socket) => {
                 participant: room.participant
             });
             
-            console.log(`Participant ${room.participant.name} joined room ${roomId}`);
+            console.log(`Participant joined room ${roomId}`);
         } else {
-            console.log(`Room ${roomId} not found`);
+            console.log(`Room ${roomId} not found. Available rooms:`, Array.from(chatRooms.keys()));
             socket.emit('room-not-found');
         }
     });
-    
+
     // Handle disconnection
     socket.on('disconnect', () => {
         const connection = activeConnections.get(socket.id);
