@@ -21,12 +21,27 @@
             <div class="system-message">Connecting to chat...</div>
         </div>
 
-        <div class="chat-input">
-            <input type="text" id="messageInput" placeholder="Type your message..." maxlength="200">
-            <button onclick="sendMessage()">Send</button>
-        </div>
 
-        <div class="chat-footer">
+<div class="chat-input">
+    <div class="input-wrapper">
+      <textarea id="messageInput" class="chat-textarea" rows="3" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
+      <button class="emoji-btn" id="emojiToggle" type="button">😊</button>
+      <div class="emoji-panel" id="emojiPanel" hidden>
+        <button type="button" class="emoji">😀</button>
+        <button type="button" class="emoji">😂</button>
+        <button type="button" class="emoji">❤️</button>
+        <button type="button" class="emoji">👍</button>
+        <button type="button" class="emoji">🙏</button>
+        <button type="button" class="emoji">🔥</button>
+        <button type="button" class="emoji">🎉</button>
+        <button type="button" class="emoji">😮</button>
+        <button type="button" class="emoji">😢</button>
+      </div>
+      <button class="send-btn" id="sendBtn" type="button" title="Send">➤</button>
+    </div>
+  </div>
+
+  <div class="chat-footer">
             <small>💡 Messages are not saved. Chat anonymously with Rajendran D.</small>
         </div>
     </div>
@@ -44,6 +59,65 @@
         const roomId = urlParams.get('room');
         const participantName = urlParams.get('name');
     
+  // ... keep your existing socket setup above
+
+  const emojiToggle = document.getElementById('emojiToggle');
+  const emojiPanel = document.getElementById('emojiPanel');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function insertAtCursor(textarea, text) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    textarea.value = value.slice(0, start) + text + value.slice(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    autoResize();
+  }
+
+  function autoResize() {
+    messageInput.style.height = 'auto';
+    messageInput.style.height = Math.min(messageInput.scrollHeight, 160) + 'px';
+  }
+  messageInput.addEventListener('input', autoResize);
+
+  emojiToggle.addEventListener('click', () => {
+    emojiPanel.hidden = !emojiPanel.hidden;
+  });
+
+  emojiPanel.addEventListener('click', (e) => {
+    if (e.target.classList.contains('emoji')) {
+      insertAtCursor(messageInput, e.target.textContent);
+      messageInput.focus();
+    }
+  });
+
+  window.addEventListener('click', (e) => {
+    if (!emojiPanel.contains(e.target) && e.target !== emojiToggle) {
+      emojiPanel.hidden = true;
+    }
+  });
+
+  messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  function sendMessage() {
+    const message = messageInput.value.trim();
+    if (!message) return;
+    socket.emit('send-message', { text: message });
+    messageInput.value = '';
+    autoResize();
+    emojiPanel.hidden = true;
+  }
+
+  // ... keep your existing listeners below
+</script>
+
         if (!roomId || !participantName) {
             window.location.href = '/knock';
         }

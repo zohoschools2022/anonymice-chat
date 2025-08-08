@@ -478,3 +478,73 @@ body {
 .chat-messages::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
 } 
+
+/* Multiline chat input */
+.input-wrapper {
+    position: relative;
+  }
+  .chat-textarea {
+    width: 100%;
+    min-height: 56px;
+    max-height: 160px;
+    resize: none;
+    padding: 12px 44px 12px 44px; /* space for emoji (left) and send (right) */
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    background: #fff;
+  }
+  .chat-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  .send-btn {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #667eea;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+  .send-btn:hover { background: #5a67d8; }
+  .emoji-btn {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 20px;
+  }
+  .emoji-panel {
+    position: absolute;
+    left: 10px;
+    bottom: 50px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    z-index: 10;
+  }
+  .emoji-panel .emoji {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px;
+    line-height: 1;
+  }

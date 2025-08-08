@@ -76,14 +76,29 @@
                 <div class="chat-messages" id="messages-${roomId}">
                     <div class="system-message">Chat started with ${participant.name}</div>
                 </div>
-                <div class="chat-input">
-                    <input type="text" placeholder="Type your message..." id="input-${roomId}" maxlength="200">
-                    <button onclick="sendMessage(${roomId})">Send</button>
-                </div>
-            `;
+<div class="chat-input">
+  <div class="input-wrapper">
+    <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-${roomId}"></textarea>
+    <button class="emoji-btn" id="emojiToggle-${roomId}" type="button">😊</button>
+    <div class="emoji-panel" id="emojiPanel-${roomId}" hidden>
+      <button type="button" class="emoji">😀</button>
+      <button type="button" class="emoji">😂</button>
+      <button type="button" class="emoji">❤️</button>
+      <button type="button" class="emoji">👍</button>
+      <button type="button" class="emoji">🙏</button>
+      <button type="button" class="emoji">🔥</button>
+      <button type="button" class="emoji">🎉</button>
+      <button type="button" class="emoji">😮</button>
+      <button type="button" class="emoji">😢</button>
+    </div>
+    <button class="send-btn" type="button" title="Send" onclick="sendMessage(${roomId})">➤</button>
+  </div>
+</div>            `;
 
             chatGrid.appendChild(chatWindow);
             chatWindows[roomId] = chatWindow;
+
+            setupInputUI(roomId);
 
             // Join the room
             socket.emit('join-room', { roomId });
@@ -138,6 +153,54 @@
             activeRooms = Object.keys(chatWindows).length;
             activeRoomsSpan.textContent = `Active Rooms: ${activeRooms}`;
         }
+
+
+  // Add once in admin.html
+  function insertAtCursor(textarea, text) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    textarea.value = value.slice(0, start) + text + value.slice(end);
+    textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    autoResize(textarea);
+  }
+  function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  }
+  function setupInputUI(roomId) {
+    const textarea = document.getElementById(`input-${roomId}`);
+    const toggle = document.getElementById(`emojiToggle-${roomId}`);
+    const panel = document.getElementById(`emojiPanel-${roomId}`);
+
+    const handleKey = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage(roomId);
+      }
+    };
+    textarea.addEventListener('keydown', handleKey);
+    textarea.addEventListener('input', () => autoResize(textarea));
+
+    toggle.addEventListener('click', () => {
+      panel.hidden = !panel.hidden;
+    });
+    panel.addEventListener('click', (e) => {
+      if (e.target.classList.contains('emoji')) {
+        insertAtCursor(textarea, e.target.textContent);
+        textarea.focus();
+      }
+    });
+    window.addEventListener('click', (e) => {
+      if (!panel.contains(e.target) && e.target !== toggle) {
+        panel.hidden = true;
+      }
+    });
+  }
+
+  // Call this inside createChatWindow after adding to DOM:
+  // setupInputUI(roomId);
+
 
         // Global function for button onclick
         window.sendMessage = sendMessage;
