@@ -19,6 +19,7 @@ const ADMIN_NAME = "Rajendran D";
 // Chat state management
 const chatRooms = new Map();
 const activeConnections = new Map();
+const participantRooms = new Map(); // Track which participant is in which room
 const maxRooms = 8;
 
 // Serve static files
@@ -76,16 +77,13 @@ io.on('connection', (socket) => {
             // Create room
             chatRooms.set(roomId, {
                 id: roomId,
-                participant: { id: socket.id, name: participantName },
+                participant: { name: participantName },
                 messages: [],
                 created: Date.now()
             });
 
-            activeConnections.set(socket.id, { 
-                type: 'participant', 
-                name: participantName, 
-                roomId: roomId 
-            });
+            // Store participant-room mapping
+            participantRooms.set(participantName, roomId);
 
             socket.join(`room-${roomId}`);
             
@@ -105,16 +103,16 @@ io.on('connection', (socket) => {
             // Notify admin
             io.to('admin-room').emit('new-participant', {
                 roomId,
-                participant: { id: socket.id, name: participantName }
+                participant: { name: participantName }
             });
 
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
+            console.log(`Participant rooms:`, Array.from(participantRooms.entries()));
         } else {
             socket.emit('no-rooms-available');
         }
     });
-
 
     // Handle chat messages
     socket.on('send-message', (data) => {
@@ -154,12 +152,30 @@ io.on('connection', (socket) => {
     // Handle room join requests
     socket.on('join-room', (data) => {
         const roomId = parseInt(data.roomId);
+        const participantName = data.name || data.participantName;
+        
+        console.log('Join room request:', { roomId, participantName });
+        
+        // Check if this participant is assigned to this room
+        const assignedRoomId = participantRooms.get(participantName);
         const room = chatRooms.get(roomId);
         
-        console.log('Join room request:', { roomId, roomExists: !!room, allRooms: Array.from(chatRooms.keys()) });
+        console.log('Room check:', { 
+            roomId, 
+            assignedRoomId, 
+            roomExists: !!room, 
+            allRooms: Array.from(chatRooms.keys()),
+            participantRooms: Array.from(participantRooms.entries())
+        });
         
-        if (room) {
-            // Don't overwrite existing connection, just join the room
+        if (room && assignedRoomId === roomId) {
+            // Update connection mapping
+            activeConnections.set(socket.id, { 
+                type: 'participant', 
+                name: participantName, 
+                roomId: roomId 
+            });
+            
             socket.join(`room-${roomId}`);
             socket.emit('room-joined', { 
                 roomId, 
@@ -167,9 +183,9 @@ io.on('connection', (socket) => {
                 participant: room.participant
             });
             
-            console.log(`Participant joined room ${roomId}`);
+            console.log(`Participant ${participantName} joined room ${roomId}`);
         } else {
-            console.log(`Room ${roomId} not found. Available rooms:`, Array.from(chatRooms.keys()));
+            console.log(`Room ${roomId} not found or participant ${participantName} not assigned to this room`);
             socket.emit('room-not-found');
         }
     });
