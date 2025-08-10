@@ -19,6 +19,47 @@
 
     <div class="chat-grid">
         <!-- Chat windows will be dynamically created -->
+        <div class="empty-state" id="emptyState">
+            <div class="empty-state-content">
+                <div class="empty-icon">🐭</div>
+                <h2>No Active Chats</h2>
+                <p>When participants knock and join, their chat windows will appear here.</p>
+                <div class="empty-rooms">
+                    <div class="empty-room" data-room="0">
+                        <div class="empty-room-header">Room 0</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="1">
+                        <div class="empty-room-header">Room 1</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="2">
+                        <div class="empty-room-header">Room 2</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="3">
+                        <div class="empty-room-header">Room 3</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="4">
+                        <div class="empty-room-header">Room 4</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="5">
+                        <div class="empty-room-header">Room 5</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="6">
+                        <div class="empty-room-header">Room 6</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                    <div class="empty-room" data-room="7">
+                        <div class="empty-room-header">Room 7</div>
+                        <div class="empty-room-content">Waiting for participant...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="admin-footer">
@@ -95,6 +136,13 @@
 
         function createChatWindow(roomId, participant) {
             console.log('Creating chat window for room:', roomId, 'participant:', participant);
+            
+            // Hide empty state when first chat window is created
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+            
             const chatWindow = document.createElement('div');
             chatWindow.className = 'chat-window';
             chatWindow.id = `chat-${roomId}`;
@@ -151,6 +199,14 @@
             if (chatWindow) {
                 chatWindow.remove();
                 delete chatWindows[roomId];
+                
+                // Show empty state if no chat windows remain
+                if (Object.keys(chatWindows).length === 0) {
+                    const emptyState = document.getElementById('emptyState');
+                    if (emptyState) {
+                        emptyState.style.display = 'flex';
+                    }
+                }
             }
         }
 

@@ -222,12 +222,110 @@ body {
 /* Chat grid */
 .chat-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-    gap: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+    gap: 25px;
     padding: 30px;
-    max-width: 1800px;
+    max-width: 1600px;
     margin: 0 auto;
     min-height: calc(100vh - 200px);
+}
+
+/* Responsive grid adjustments */
+@media (min-width: 1200px) {
+    .chat-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1600px) {
+    .chat-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 2000px) {
+    .chat-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Empty state */
+.empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.empty-state-content {
+    text-align: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+.empty-state-content h2 {
+    color: #2d3748;
+    font-size: 2rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.empty-state-content p {
+    color: #4a5568;
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+}
+
+.empty-rooms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.empty-room {
+    background: rgba(248, 250, 252, 0.8);
+    border: 2px dashed rgba(102, 126, 234, 0.3);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.empty-room:hover {
+    border-color: rgba(102, 126, 234, 0.6);
+    background: rgba(248, 250, 252, 0.9);
+    transform: translateY(-2px);
+}
+
+.empty-room-header {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+
+.empty-room-content {
+    color: #718096;
+    font-size: 0.9rem;
 }
 
 /* Chat window styles */
