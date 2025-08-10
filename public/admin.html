@@ -90,44 +90,314 @@
     </div>
 
     <div class="chat-grid">
-        <!-- Chat windows will be dynamically created -->
-        <div class="empty-state" id="emptyState">
-            <div class="empty-state-content">
-                <div class="empty-icon">🐭</div>
-                <h2>No Active Chats</h2>
-                <p>When participants knock and join, their chat windows will appear here.</p>
-                <div class="empty-rooms">
-                    <div class="empty-room" data-room="0">
-                        <div class="empty-room-header">Room 0</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+        <!-- Fixed 2x4 grid of chat windows -->
+        <div class="chat-window" id="chat-0" data-room="0">
+            <div class="chat-header">
+                <h3>Room 0</h3>
+                <span class="participant-name" id="participant-0">Waiting...</span>
+                <span class="status-indicator" id="status-0">○</span>
+            </div>
+            <div class="chat-messages" id="messages-0">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-0" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
                     </div>
-                    <div class="empty-room" data-room="1">
-                        <div class="empty-room-header">Room 1</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-0" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-0"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(0)">➤</button>
+                        </div>
                     </div>
-                    <div class="empty-room" data-room="2">
-                        <div class="empty-room-header">Room 2</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-1" data-room="1">
+            <div class="chat-header">
+                <h3>Room 1</h3>
+                <span class="participant-name" id="participant-1">Waiting...</span>
+                <span class="status-indicator" id="status-1">○</span>
+            </div>
+            <div class="chat-messages" id="messages-1">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-1" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
                     </div>
-                    <div class="empty-room" data-room="3">
-                        <div class="empty-room-header">Room 3</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-1" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-1"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(1)">➤</button>
+                        </div>
                     </div>
-                    <div class="empty-room" data-room="4">
-                        <div class="empty-room-header">Room 4</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-2" data-room="2">
+            <div class="chat-header">
+                <h3>Room 2</h3>
+                <span class="participant-name" id="participant-2">Waiting...</span>
+                <span class="status-indicator" id="status-2">○</span>
+            </div>
+            <div class="chat-messages" id="messages-2">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-2" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
                     </div>
-                    <div class="empty-room" data-room="5">
-                        <div class="empty-room-header">Room 5</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-2" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-2"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(2)">➤</button>
+                        </div>
                     </div>
-                    <div class="empty-room" data-room="6">
-                        <div class="empty-room-header">Room 6</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-3" data-room="3">
+            <div class="chat-header">
+                <h3>Room 3</h3>
+                <span class="participant-name" id="participant-3">Waiting...</span>
+                <span class="status-indicator" id="status-3">○</span>
+            </div>
+            <div class="chat-messages" id="messages-3">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-3" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
                     </div>
-                    <div class="empty-room" data-room="7">
-                        <div class="empty-room-header">Room 7</div>
-                        <div class="empty-room-content">Waiting for participant...</div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-3" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-3"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(3)">➤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-4" data-room="4">
+            <div class="chat-header">
+                <h3>Room 4</h3>
+                <span class="participant-name" id="participant-4">Waiting...</span>
+                <span class="status-indicator" id="status-4">○</span>
+            </div>
+            <div class="chat-messages" id="messages-4">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-4" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
+                    </div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-4" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-4"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(4)">➤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-5" data-room="5">
+            <div class="chat-header">
+                <h3>Room 5</h3>
+                <span class="participant-name" id="participant-5">Waiting...</span>
+                <span class="status-indicator" id="status-5">○</span>
+            </div>
+            <div class="chat-messages" id="messages-5">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-5" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
+                    </div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-5" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-5"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(5)">➤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-6" data-room="6">
+            <div class="chat-header">
+                <h3>Room 6</h3>
+                <span class="participant-name" id="participant-6">Waiting...</span>
+                <span class="status-indicator" id="status-6">○</span>
+            </div>
+            <div class="chat-messages" id="messages-6">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-6" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
+                    </div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-6" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-6"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(6)">➤</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-window" id="chat-7" data-room="7">
+            <div class="chat-header">
+                <h3>Room 7</h3>
+                <span class="participant-name" id="participant-7">Waiting...</span>
+                <span class="status-indicator" id="status-7">○</span>
+            </div>
+            <div class="chat-messages" id="messages-7">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="emoji-panel" id="emojiPanel-7" hidden>
+                        <button type="button" class="emoji">😀</button>
+                        <button type="button" class="emoji">😂</button>
+                        <button type="button" class="emoji">❤️</button>
+                        <button type="button" class="emoji">👍</button>
+                        <button type="button" class="emoji">🙏</button>
+                        <button type="button" class="emoji">🔥</button>
+                        <button type="button" class="emoji">🎉</button>
+                        <button type="button" class="emoji">😮</button>
+                        <button type="button" class="emoji">😢</button>
+                        <button type="button" class="emoji">😊</button>
+                        <button type="button" class="emoji">🤔</button>
+                        <button type="button" class="emoji">😎</button>
+                        <button type="button" class="emoji">💯</button>
+                        <button type="button" class="emoji">😭</button>
+                        <button type="button" class="emoji">🤣</button>
+                    </div>
+                    <div class="input-row">
+                        <button class="emoji-btn" id="emojiToggle-7" type="button">😊</button>
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-7"></textarea>
+                            <button class="send-btn" type="button" title="Send" onclick="sendMessage(7)">➤</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -157,6 +427,11 @@
         let activeRooms = 0;
         let chatWindows = {};
 
+        // Initialize all 8 rooms
+        for (let i = 0; i < 8; i++) {
+            setupInputUI(i);
+        }
+
         // Connect as admin
         console.log('Attempting to connect as admin...');
         socket.emit('admin-connect');
@@ -164,11 +439,11 @@
         socket.on('admin-connected', (data) => {
             console.log('Admin connected, existing rooms:', data.rooms);
             
-            // Create chat windows for existing rooms
+            // Update existing rooms
             if (data.rooms && data.rooms.length > 0) {
                 data.rooms.forEach(room => {
-                    console.log('Creating chat window for room:', room);
-                    createChatWindow(room.roomId, room.participant);
+                    console.log('Updating room:', room);
+                    updateRoomParticipant(room.roomId, room.participant);
                     
                     // Add existing messages to the window
                     if (room.messages && room.messages.length > 0) {
@@ -190,7 +465,7 @@
 
         socket.on('new-participant', (data) => {
             console.log('New participant:', data);
-            createChatWindow(data.roomId, data.participant);
+            updateRoomParticipant(data.roomId, data.participant);
             updateActiveRooms();
         });
 
@@ -214,80 +489,60 @@
             }
         });
 
-        function createChatWindow(roomId, participant) {
-            console.log('Creating chat window for room:', roomId, 'participant:', participant);
+        function updateRoomParticipant(roomId, participant) {
+            console.log('Updating room participant:', roomId, participant);
             
-            // Hide empty state when first chat window is created
-            const emptyState = document.getElementById('emptyState');
-            if (emptyState) {
-                emptyState.style.display = 'none';
+            const participantSpan = document.getElementById(`participant-${roomId}`);
+            const statusIndicator = document.getElementById(`status-${roomId}`);
+            const messagesContainer = document.getElementById(`messages-${roomId}`);
+            
+            if (participantSpan) {
+                participantSpan.textContent = participant.name;
+                participantSpan.style.color = '#48bb78';
             }
             
-            const chatWindow = document.createElement('div');
-            chatWindow.className = 'chat-window';
-            chatWindow.id = `chat-${roomId}`;
+            if (statusIndicator) {
+                statusIndicator.textContent = '●';
+                statusIndicator.className = 'status-indicator online';
+            }
             
-            chatWindow.innerHTML = `
-                <div class="chat-header">
-                    <h3>Room ${roomId}</h3>
-                    <span class="participant-name">${participant.name}</span>
-                    <span class="status-indicator online">●</span>
-                </div>
-                <div class="chat-messages" id="messages-${roomId}">
-                    <div class="system-message">Chat started with ${participant.name}</div>
-                </div>
-<div class="chat-input">
-  <div class="input-wrapper">
-    <div class="emoji-panel" id="emojiPanel-${roomId}" hidden>
-      <button type="button" class="emoji">😀</button>
-      <button type="button" class="emoji">😂</button>
-      <button type="button" class="emoji">❤️</button>
-      <button type="button" class="emoji">👍</button>
-      <button type="button" class="emoji">🙏</button>
-      <button type="button" class="emoji">🔥</button>
-      <button type="button" class="emoji">🎉</button>
-      <button type="button" class="emoji">😮</button>
-      <button type="button" class="emoji">😢</button>
-      <button type="button" class="emoji">😊</button>
-      <button type="button" class="emoji">🤔</button>
-      <button type="button" class="emoji">😎</button>
-      <button type="button" class="emoji">💯</button>
-      <button type="button" class="emoji">😭</button>
-      <button type="button" class="emoji">🤣</button>
-    </div>
-    <div class="input-row">
-      <button class="emoji-btn" id="emojiToggle-${roomId}" type="button">😊</button>
-      <div style="position: relative; flex: 1;">
-        <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-${roomId}"></textarea>
-        <button class="send-btn" type="button" title="Send" onclick="sendMessage(${roomId})">➤</button>
-      </div>
-    </div>
-  </div>
-</div>            `;
-
-            chatGrid.appendChild(chatWindow);
-            chatWindows[roomId] = chatWindow;
-
+            if (messagesContainer) {
+                // Clear "No participant yet" message
+                const systemMessage = messagesContainer.querySelector('.system-message');
+                if (systemMessage && systemMessage.textContent === 'No participant yet') {
+                    systemMessage.remove();
+                }
+            }
+            
+            // Setup input UI for this room
             setupInputUI(roomId);
-
+            
             // Join the room
             socket.emit('join-room', { roomId, isAdmin: true });
         }
 
         function removeChatWindow(roomId) {
-            const chatWindow = chatWindows[roomId];
-            if (chatWindow) {
-                chatWindow.remove();
-                delete chatWindows[roomId];
-                
-                // Show empty state if no chat windows remain
-                if (Object.keys(chatWindows).length === 0) {
-                    const emptyState = document.getElementById('emptyState');
-                    if (emptyState) {
-                        emptyState.style.display = 'flex';
-                    }
-                }
+            console.log('Resetting room:', roomId);
+            
+            const participantSpan = document.getElementById(`participant-${roomId}`);
+            const statusIndicator = document.getElementById(`status-${roomId}`);
+            const messagesContainer = document.getElementById(`messages-${roomId}`);
+            
+            if (participantSpan) {
+                participantSpan.textContent = 'Waiting...';
+                participantSpan.style.color = '#718096';
             }
+            
+            if (statusIndicator) {
+                statusIndicator.textContent = '○';
+                statusIndicator.className = 'status-indicator';
+            }
+            
+            if (messagesContainer) {
+                messagesContainer.innerHTML = '<div class="system-message">No participant yet</div>';
+            }
+            
+            updateActiveRooms();
         }
 
         function addMessageToWindow(roomId, message) {
@@ -342,7 +597,15 @@
         }
 
         function updateActiveRooms() {
-            activeRooms = Object.keys(chatWindows).length;
+            // Count rooms with active participants
+            let activeCount = 0;
+            for (let i = 0; i < 8; i++) {
+                const participantSpan = document.getElementById(`participant-${i}`);
+                if (participantSpan && participantSpan.textContent !== 'Waiting...') {
+                    activeCount++;
+                }
+            }
+            activeRooms = activeCount;
             activeRoomsSpan.textContent = `Active Rooms: ${activeRooms}`;
         }
 
