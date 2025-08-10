@@ -90,3 +90,45 @@ Once deployed, you can:
 - Share the knock URL with friends
 - Use the admin URL to manage conversations
 - Monitor up to 8 concurrent chats 
+
+Excellent! ✅ **Railway deployment is complete!**
+
+## ✅ **Your Chat App is Now Live!**
+
+Railway should have given you a URL for your app. Let's get your URLs:
+
+### **Step 4: Get Your URLs**
+
+**Look for your Railway project URL** - it should be something like:
+- `https://anonymice-chat-production.up.railway.app`
+- or `https://your-project-name.railway.app`
+
+### **Your App URLs:**
+
+1. **Public URL**: `https://your-railway-url.railway.app`
+2. **Knock URL**: `https://your-railway-url.railway.app/knock`
+3. **Admin URL**: `https://your-railway-url.railway.app/admin/{ADMIN_URL}`
+
+### **To Find Your Admin URL:**
+
+1. **Go to your Railway dashboard**
+2. **Click on your project**
+3. **Go to the "Deployments" tab**
+4. **Click on the latest deployment**
+5. **Look in the logs** for a line that says:
+   ```
+   Admin URL: https://your-railway-url.railway.app/admin/abc123...
+   ```
+
+## 🎯 **Test Your App:**
+
+1. **Test the knock page**: Visit the knock URL
+2. **Test the admin page**: Visit the admin URL
+3. **Test chat functionality**: Join as a participant
+
+## 🚀 **Share with Friends:**
+
+- **For participants**: Share the Knock URL
+- **For you**: Use the Admin URL to manage chats
+
+**What's your Railway URL?** Let me know and I'll help you test it! 
