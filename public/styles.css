@@ -549,3 +549,6 @@ body {
     padding: 4px;
     line-height: 1;
   }
+
+  .input-wrapper.show-emoji { padding-bottom: 210px; } /* create space when panel is open */
+.emoji-panel { z-index: 1000; bottom: calc(100% + 8px); } /* ensure above input */

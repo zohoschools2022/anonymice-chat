@@ -149,46 +149,27 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle room join requests
     socket.on('join-room', (data) => {
-        const roomId = parseInt(data.roomId);
-        const participantName = data.name || data.participantName;
-        
-        console.log('Join room request:', { roomId, participantName });
-        
-        // Check if this participant is assigned to this room
-        const assignedRoomId = participantRooms.get(participantName);
+        const roomId = parseInt(data.roomId, 10);
         const room = chatRooms.get(roomId);
-        
-        console.log('Room check:', { 
-            roomId, 
-            assignedRoomId, 
-            roomExists: !!room, 
-            allRooms: Array.from(chatRooms.keys()),
-            participantRooms: Array.from(participantRooms.entries())
-        });
-        
-        if (room && assignedRoomId === roomId) {
-            // Update connection mapping
-            activeConnections.set(socket.id, { 
-                type: 'participant', 
-                name: participantName, 
-                roomId: roomId 
-            });
-            
-            socket.join(`room-${roomId}`);
-            socket.emit('room-joined', { 
-                roomId, 
-                messages: room.messages,
-                participant: room.participant
-            });
-            
-            console.log(`Participant ${participantName} joined room ${roomId}`);
-        } else {
-            console.log(`Room ${roomId} not found or participant ${participantName} not assigned to this room`);
-            socket.emit('room-not-found');
+        if (!room) { socket.emit('room-not-found'); return; }
+    
+        if (data.isAdmin) {
+          socket.join(`room-${roomId}`);
+          socket.emit('room-joined', { roomId, messages: room.messages, participant: room.participant });
+          return;
         }
-    });
+    
+        const participantName = data.participantName;
+        if (!participantName || room.participant?.name !== participantName) {
+          socket.emit('room-not-found'); return;
+        }
+    
+        activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
+        socket.join(`room-${roomId}`);
+        socket.emit('room-joined', { roomId, messages: room.messages, participant: room.participant });
+      });
+    
 
     // Handle disconnection
     socket.on('disconnect', () => {

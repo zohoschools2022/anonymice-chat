@@ -64,10 +64,25 @@
   const emojiPanel = document.getElementById('emojiPanel');
   const sendBtn = document.getElementById('sendBtn');
 
-  messageInput.addEventListener('focus', () => { emojiPanel.hidden = true; });
-messageInput.addEventListener('keydown', () => { emojiPanel.hidden = true; });
+  const inputWrapper = document.querySelector('.input-wrapper');
 
-  function insertAtCursor(textarea, text) {
+  emojiToggle.addEventListener('click', () => {
+  const open = emojiPanel.hidden;
+  emojiPanel.hidden = !open;
+  inputWrapper.classList.toggle('show-emoji', !emojiPanel.hidden);
+});
+
+
+messageInput.addEventListener('focus', () => {
+  emojiPanel.hidden = true;
+  inputWrapper.classList.remove('show-emoji');
+});
+messageInput.addEventListener('keydown', () => {
+  emojiPanel.hidden = true;
+  inputWrapper.classList.remove('show-emoji');
+});
+
+function insertAtCursor(textarea, text) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const value = textarea.value;

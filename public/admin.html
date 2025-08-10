@@ -104,7 +104,9 @@
             setupInputUI(roomId);
 
             // Join the room
-            socket.emit('join-room', { roomId });
+// Join the room
+socket.emit('join-room', { roomId, isAdmin: true });
+
 
             // Handle enter key
             const input = chatWindow.querySelector(`#input-${roomId}`);
@@ -166,10 +168,12 @@
     textarea.style.height = 'auto';
     textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
   }
+
   function setupInputUI(roomId) {
     const textarea = document.getElementById(`input-${roomId}`);
-    const toggle = document.getElementById(`emojiToggle-${roomId}`);
-    const panel = document.getElementById(`emojiPanel-${roomId}`);
+  const toggle = document.getElementById(`emojiToggle-${roomId}`);
+  const panel = document.getElementById(`emojiPanel-${roomId}`);
+  const wrapper = textarea.closest('.input-wrapper');
 
     const handleKey = (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -177,6 +181,9 @@
         sendMessage(roomId);
       }
     };
+    textarea.addEventListener('focus', () => { panel.hidden = true; wrapper.classList.remove('show-emoji'); });
+  textarea.addEventListener('keydown', () => { panel.hidden = true; wrapper.classList.remove('show-emoji'); });
+
     textarea.addEventListener('keydown', handleKey);
     textarea.addEventListener('input', () => autoResize(textarea));
 
