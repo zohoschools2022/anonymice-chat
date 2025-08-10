@@ -80,6 +80,11 @@
             }
         });
 
+        socket.on('message-sent', (message) => {
+            // This handles admin's own messages
+            console.log('Message sent by admin:', message);
+        });
+
         socket.on('participant-left', (data) => {
             const { roomId, participant } = data;
             if (chatWindows[roomId]) {
@@ -105,13 +110,6 @@
                 </div>
 <div class="chat-input">
   <div class="input-wrapper">
-    <div class="input-row">
-      <button class="emoji-btn" id="emojiToggle-${roomId}" type="button">😊</button>
-      <div style="position: relative; flex: 1;">
-        <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-${roomId}"></textarea>
-        <button class="send-btn" type="button" title="Send" onclick="sendMessage(${roomId})">➤</button>
-      </div>
-    </div>
     <div class="emoji-panel" id="emojiPanel-${roomId}" hidden>
       <button type="button" class="emoji">😀</button>
       <button type="button" class="emoji">😂</button>
@@ -122,6 +120,19 @@
       <button type="button" class="emoji">🎉</button>
       <button type="button" class="emoji">😮</button>
       <button type="button" class="emoji">😢</button>
+      <button type="button" class="emoji">😊</button>
+      <button type="button" class="emoji">🤔</button>
+      <button type="button" class="emoji">😎</button>
+      <button type="button" class="emoji">💯</button>
+      <button type="button" class="emoji">😭</button>
+      <button type="button" class="emoji">🤣</button>
+    </div>
+    <div class="input-row">
+      <button class="emoji-btn" id="emojiToggle-${roomId}" type="button">😊</button>
+      <div style="position: relative; flex: 1;">
+        <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-${roomId}"></textarea>
+        <button class="send-btn" type="button" title="Send" onclick="sendMessage(${roomId})">➤</button>
+      </div>
     </div>
   </div>
 </div>            `;
@@ -167,7 +178,22 @@
             const message = input.value.trim();
             
             if (message) {
+                // Create admin message object
+                const adminMessage = {
+                    id: Date.now(),
+                    text: message,
+                    sender: 'Rajendran D',
+                    timestamp: new Date().toLocaleTimeString(),
+                    isAdmin: true
+                };
+                
+                // Immediately show the message in admin interface
+                addMessageToWindow(roomId, adminMessage);
+                
+                // Send to server
                 socket.emit('send-message', { text: message, roomId });
+                
+                // Clear input and reset UI
                 input.value = '';
                 autoResize(input);
                 
