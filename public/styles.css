@@ -482,73 +482,104 @@ body {
 /* Multiline chat input */
 .input-wrapper {
     position: relative;
-  }
-  .chat-textarea {
-    width: 100%;
-    min-height: 56px;
-    max-height: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-row {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.chat-textarea {
+    flex: 1;
+    min-height: 40px;
+    max-height: 120px;
     resize: none;
-    padding: 12px 44px 12px 44px; /* space for emoji (left) and send (right) */
+    padding: 10px 50px 10px 10px; /* space for send button on right */
     border: 2px solid #e2e8f0;
     border-radius: 12px;
     font-size: 0.95rem;
     line-height: 1.4;
     background: #fff;
-  }
-  .chat-textarea:focus {
+    font-family: inherit;
+}
+
+.chat-textarea:focus {
     outline: none;
     border-color: #667eea;
-  }
-  .send-btn {
+}
+
+.send-btn {
     position: absolute;
-    right: 10px;
-    bottom: 10px;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    right: 8px;
+    bottom: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     background: #667eea;
     color: #fff;
     border: none;
     cursor: pointer;
     display: grid;
     place-items: center;
-    font-size: 16px;
-  }
-  .send-btn:hover { background: #5a67d8; }
-  .emoji-btn {
-    position: absolute;
-    left: 10px;
-    bottom: 10px;
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.send-btn:hover { 
+    background: #5a67d8; 
+}
+
+.emoji-btn {
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 20px;
-  }
-  .emoji-panel {
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.emoji-btn:hover {
+    background: #e9ecef;
+}
+
+.emoji-panel {
     position: absolute;
-    left: 10px;
-    bottom: calc(100% + 8px); /* sit ABOVE the input wrapper */
+    bottom: calc(100% + 8px);
+    left: 0;
     background: #fff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     padding: 6px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 4px;
-    z-index: 1000; /* ensure on top of everything */
-  }
+    z-index: 1000;
+    max-width: 300px;
+    max-height: 120px;
+    overflow-y: auto;
+}
 
-  .emoji-panel .emoji {
+.emoji-panel button {
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 20px;
-    padding: 4px;
-    line-height: 1;
-  }
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
 
-  .input-wrapper.show-emoji { padding-bottom: 210px; } /* create space when panel is open */
-.emoji-panel { z-index: 1000; bottom: calc(100% + 8px); } /* ensure above input */
+.emoji-panel button:hover {
+    background: #f0f0f0;
+}
+
+.input-wrapper.show-emoji { 
+    padding-bottom: 140px; 
+}

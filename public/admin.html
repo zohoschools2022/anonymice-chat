@@ -81,8 +81,13 @@
                 </div>
 <div class="chat-input">
   <div class="input-wrapper">
-    <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-${roomId}"></textarea>
-    <button class="emoji-btn" id="emojiToggle-${roomId}" type="button">😊</button>
+    <div class="input-row">
+      <button class="emoji-btn" id="emojiToggle-${roomId}" type="button">😊</button>
+      <div style="position: relative; flex: 1;">
+        <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" id="input-${roomId}"></textarea>
+        <button class="send-btn" type="button" title="Send" onclick="sendMessage(${roomId})">➤</button>
+      </div>
+    </div>
     <div class="emoji-panel" id="emojiPanel-${roomId}" hidden>
       <button type="button" class="emoji">😀</button>
       <button type="button" class="emoji">😂</button>
@@ -94,7 +99,6 @@
       <button type="button" class="emoji">😮</button>
       <button type="button" class="emoji">😢</button>
     </div>
-    <button class="send-btn" type="button" title="Send" onclick="sendMessage(${roomId})">➤</button>
   </div>
 </div>            `;
 
@@ -146,6 +150,13 @@ socket.emit('join-room', { roomId, isAdmin: true });
             if (message) {
                 socket.emit('send-message', { text: message, roomId });
                 input.value = '';
+                autoResize(input);
+                
+                // Hide emoji panel after sending
+                const panel = document.getElementById(`emojiPanel-${roomId}`);
+                const wrapper = input.closest('.input-wrapper');
+                if (panel) panel.hidden = true;
+                if (wrapper) wrapper.classList.remove('show-emoji');
             }
         }
 
@@ -171,34 +182,53 @@ socket.emit('join-room', { roomId, isAdmin: true });
 
   function setupInputUI(roomId) {
     const textarea = document.getElementById(`input-${roomId}`);
-  const toggle = document.getElementById(`emojiToggle-${roomId}`);
-  const panel = document.getElementById(`emojiPanel-${roomId}`);
-  const wrapper = textarea.closest('.input-wrapper');
+    const toggle = document.getElementById(`emojiToggle-${roomId}`);
+    const panel = document.getElementById(`emojiPanel-${roomId}`);
+    const wrapper = textarea.closest('.input-wrapper');
 
+    // Handle Enter key for sending messages
     const handleKey = (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage(roomId);
+        autoResize(textarea);
       }
     };
-    textarea.addEventListener('focus', () => { panel.hidden = true; wrapper.classList.remove('show-emoji'); });
-  textarea.addEventListener('keydown', () => { panel.hidden = true; wrapper.classList.remove('show-emoji'); });
 
-    textarea.addEventListener('keydown', handleKey);
+    // Auto-hide emoji panel on focus/typing
+    textarea.addEventListener('focus', () => { 
+      panel.hidden = true; 
+      wrapper.classList.remove('show-emoji'); 
+    });
+    textarea.addEventListener('keydown', (e) => { 
+      panel.hidden = true; 
+      wrapper.classList.remove('show-emoji'); 
+      handleKey(e);
+    });
+
+    // Auto-resize textarea
     textarea.addEventListener('input', () => autoResize(textarea));
 
+    // Emoji toggle
     toggle.addEventListener('click', () => {
-      panel.hidden = !panel.hidden;
+      const open = panel.hidden;
+      panel.hidden = !open;
+      wrapper.classList.toggle('show-emoji', !panel.hidden);
     });
+
+    // Emoji selection
     panel.addEventListener('click', (e) => {
       if (e.target.classList.contains('emoji')) {
         insertAtCursor(textarea, e.target.textContent);
         textarea.focus();
       }
     });
+
+    // Close emoji panel when clicking outside
     window.addEventListener('click', (e) => {
       if (!panel.contains(e.target) && e.target !== toggle) {
         panel.hidden = true;
+        wrapper.classList.remove('show-emoji');
       }
     });
   }

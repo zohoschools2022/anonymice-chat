@@ -24,8 +24,13 @@
 
 <div class="chat-input">
     <div class="input-wrapper">
-      <textarea id="messageInput" class="chat-textarea" rows="3" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
-      <button class="emoji-btn" id="emojiToggle" type="button">😊</button>
+      <div class="input-row">
+        <button class="emoji-btn" id="emojiToggle" type="button">😊</button>
+        <div style="position: relative; flex: 1;">
+          <textarea id="messageInput" class="chat-textarea" rows="3" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
+          <button class="send-btn" id="sendBtn" type="button" title="Send">➤</button>
+        </div>
+      </div>
       <div class="emoji-panel" id="emojiPanel" hidden>
         <button type="button" class="emoji">😀</button>
         <button type="button" class="emoji">😂</button>
@@ -37,7 +42,6 @@
         <button type="button" class="emoji">😮</button>
         <button type="button" class="emoji">😢</button>
       </div>
-      <button class="send-btn" id="sendBtn" type="button" title="Send">➤</button>
     </div>
   </div>
 
@@ -118,6 +122,7 @@ function insertAtCursor(textarea, text) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
+      autoResize();
     }
   });
 
@@ -130,6 +135,7 @@ function insertAtCursor(textarea, text) {
     messageInput.value = '';
     autoResize();
     emojiPanel.hidden = true;
+    inputWrapper.classList.remove('show-emoji');
   }
 
         if (!roomId || !participantName) {
