@@ -55,8 +55,16 @@ io.on('connection', (socket) => {
     socket.on('admin-connect', () => {
         activeConnections.set(socket.id, { type: 'admin', name: ADMIN_NAME });
         socket.join('admin-room');
-        socket.emit('admin-connected', { rooms: Array.from(chatRooms.keys()) });
-        console.log('Admin connected');
+        
+        // Send current rooms with full data
+        const currentRooms = Array.from(chatRooms.entries()).map(([roomId, room]) => ({
+            roomId: parseInt(roomId),
+            participant: room.participant,
+            messages: room.messages
+        }));
+        
+        socket.emit('admin-connected', { rooms: currentRooms });
+        console.log('Admin connected, sent rooms:', currentRooms);
     });
 
     // Handle participant knock

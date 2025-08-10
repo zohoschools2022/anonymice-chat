@@ -41,6 +41,28 @@
 
         socket.on('admin-connected', (data) => {
             console.log('Admin connected, existing rooms:', data.rooms);
+            
+            // Create chat windows for existing rooms
+            if (data.rooms && data.rooms.length > 0) {
+                data.rooms.forEach(room => {
+                    console.log('Creating chat window for room:', room);
+                    createChatWindow(room.roomId, room.participant);
+                    
+                    // Add existing messages to the window
+                    if (room.messages && room.messages.length > 0) {
+                        // Clear the default system message
+                        const messagesContainer = document.getElementById(`messages-${room.roomId}`);
+                        if (messagesContainer) {
+                            messagesContainer.innerHTML = '';
+                        }
+                        
+                        room.messages.forEach(message => {
+                            addMessageToWindow(room.roomId, message);
+                        });
+                    }
+                });
+            }
+            
             updateActiveRooms();
         });
 
@@ -108,12 +130,7 @@
             setupInputUI(roomId);
 
             // Join the room
-// Join the room
-socket.emit('join-room', { roomId, isAdmin: true });
-
-
-            // Handle enter key
-            const input = chatWindow.querySelector(`#input-${roomId}`);
+            socket.emit('join-room', { roomId, isAdmin: true });
         }
 
         function removeChatWindow(roomId) {
