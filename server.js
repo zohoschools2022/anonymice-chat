@@ -197,9 +197,12 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Admin URL: http://localhost:${PORT}/admin/${ADMIN_URL}`);
-    console.log(`Knock URL: http://localhost:${PORT}/knock`);
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🔐 ADMIN URL: http://localhost:${PORT}/admin/${ADMIN_URL}`);
+    console.log(`🔐 ADMIN URL (Railway): https://web-production-8d6b4.up.railway.app/admin/${ADMIN_URL}`);
+    console.log(`🚪 Knock URL: http://localhost:${PORT}/knock`);
+    console.log(`🚪 Knock URL (Railway): https://web-production-8d6b4.up.railway.app/knock`);
+    console.log('='.repeat(80));
 });
 
 // Export for testing
