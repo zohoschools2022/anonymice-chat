@@ -30,13 +30,14 @@
         const chatGrid = document.querySelector('.chat-grid');
         const activeRoomsSpan = document.getElementById('activeRooms');
         
-        textarea.addEventListener('focus', () => { panel.hidden = true; });
-        textarea.addEventListener('keydown', () => { panel.hidden = true; });
+        console.log('Chat grid element:', chatGrid);
+        console.log('Active rooms span:', activeRoomsSpan);
 
         let activeRooms = 0;
         let chatWindows = {};
 
         // Connect as admin
+        console.log('Attempting to connect as admin...');
         socket.emit('admin-connect');
 
         socket.on('admin-connected', (data) => {
@@ -88,6 +89,7 @@
         });
 
         function createChatWindow(roomId, participant) {
+            console.log('Creating chat window for room:', roomId, 'participant:', participant);
             const chatWindow = document.createElement('div');
             chatWindow.className = 'chat-window';
             chatWindow.id = `chat-${roomId}`;
