@@ -227,16 +227,20 @@ body {
     gap: 20px;
     padding: 20px;
     height: calc(100vh - 200px);
+    width: 100%;
     max-width: 1800px;
     margin: 0 auto;
 }
 
-/* Admin chat containers - exact same design as individual chat page */
+/* Admin chat containers - fixed dimensions with internal scrolling */
 .admin-chat-container {
     background: white;
     border-radius: 20px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     height: 100%;
+    width: 100%;
+    min-height: 400px;
+    max-height: 500px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -270,13 +274,16 @@ body {
     padding: 15px;
     overflow-y: auto;
     background: #f8fafc;
-    min-height: 150px;
+    min-height: 200px;
+    max-height: calc(100% - 120px);
 }
 
 .admin-chat-container .chat-input {
     padding: 15px;
     background: white;
     border-top: 1px solid #e2e8f0;
+    min-height: 80px;
+    max-height: 120px;
 }
 
 /* Responsive adjustments */
