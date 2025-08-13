@@ -57,6 +57,26 @@
         socket.on('admin-connected', (data) => {
             console.log('Admin connected:', data);
             addSystemMessage('Admin dashboard ready. Waiting for participants...');
+            
+            // Join admin room to receive messages
+            socket.join('admin-room');
+            
+            // Show existing rooms if any
+            if (data.rooms && data.rooms.length > 0) {
+                data.rooms.forEach(room => {
+                    participantNameSpan.textContent = room.participant.name;
+                    statusIndicator.textContent = '●';
+                    statusIndicator.className = 'status-indicator online';
+                    addSystemMessage(`${room.participant.name} is already in chat`);
+                    
+                    // Show existing messages
+                    if (room.messages && room.messages.length > 0) {
+                        room.messages.forEach(message => {
+                            addMessage(message);
+                        });
+                    }
+                });
+            }
         });
 
         // New participant joined
@@ -66,6 +86,12 @@
             statusIndicator.textContent = '●';
             statusIndicator.className = 'status-indicator online';
             addSystemMessage(`${data.participant.name} joined the chat`);
+        });
+
+        // Admin message from participant
+        socket.on('admin-message', (data) => {
+            console.log('Admin message received:', data);
+            addMessage(data.message);
         });
 
         // New message received
@@ -100,8 +126,9 @@
                 // Immediately show the message for instant feedback
                 addMessage(adminMessage);
                 
-                // Send to server
-                socket.emit('send-message', { text: message });
+                // Send to server - need to specify which room to send to
+                // For now, send to the first active room
+                socket.emit('send-message', { text: message, roomId: 0 });
                 
                 // Clear input
                 messageInput.value = '';
