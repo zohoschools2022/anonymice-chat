@@ -553,6 +553,7 @@ body {
 
 .message-text {
     line-height: 1.4;
+    white-space: pre-line;
 }
 
 .system-message {

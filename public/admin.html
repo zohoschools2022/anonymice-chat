@@ -428,12 +428,15 @@
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.isAdmin ? 'admin-message' : 'participant-message'}`;
             
+            // Preserve newlines in message text
+            const formattedText = message.text.replace(/\n/g, '<br>');
+            
             messageElement.innerHTML = `
                 <div class="message-header">
                     <span class="sender">${message.sender}</span>
                     <span class="timestamp">${message.timestamp}</span>
                 </div>
-                <div class="message-text">${message.text}</div>
+                <div class="message-text">${formattedText}</div>
             `;
 
             messagesContainer.appendChild(messageElement);
