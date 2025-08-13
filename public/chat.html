@@ -71,17 +71,7 @@
     }
   });
 
-  sendBtn.addEventListener('click', sendMessage);
 
-  function sendMessage() {
-    const message = messageInput.value.trim();
-    if (!message) return;
-    socket.emit('send-message', { text: message });
-    messageInput.value = '';
-    autoResize();
-    emojiPanel.hidden = true;
-    inputWrapper.classList.remove('show-emoji');
-  }
 
         if (!roomId || !participantName) {
             window.location.href = '/knock';
@@ -158,15 +148,16 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
     
-        // Handle enter key
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+        // Handle enter key - Enter to send, Shift+Enter for new line
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
+                autoResize();
             }
         });
     
-        // Global function for button onclick
-        window.sendMessage = sendMessage;
+
     </script>
 </body>
 </html> 
