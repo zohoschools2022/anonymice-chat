@@ -232,7 +232,7 @@ body {
     margin: 0 auto;
 }
 
-/* Admin chat containers - fixed dimensions with internal scrolling */
+/* Admin chat containers - exact same design as individual chat page */
 .admin-chat-container {
     background: white;
     border-radius: 20px;
@@ -244,43 +244,18 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 2px solid rgba(102, 126, 234, 0.2);
-    position: relative;
     transition: all 0.3s ease;
-}
-
-.admin-chat-container::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: linear-gradient(135deg, #667eea, #764ba2, #667eea);
-    border-radius: 22px;
-    z-index: -1;
-    opacity: 0.3;
-    transition: opacity 0.3s ease;
-}
-
-.admin-chat-container:hover::before {
-    opacity: 0.5;
-}
-
-.admin-chat-container:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
 }
 
 .admin-chat-container .chat-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px;
+    padding: 20px;
     text-align: center;
 }
 
 .admin-chat-container .chat-header h2 {
-    margin: 0 0 8px 0;
+    margin-bottom: 10px;
     font-size: 1.1rem;
     font-weight: 600;
 }
@@ -289,25 +264,25 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-weight: 600;
     font-size: 0.9rem;
 }
 
 .admin-chat-container .chat-messages {
     flex: 1;
-    padding: 15px;
+    padding: 20px;
     overflow-y: auto;
     background: #f8fafc;
     min-height: 200px;
-    max-height: calc(100% - 120px);
+    max-height: calc(100% - 140px);
 }
 
 .admin-chat-container .chat-input {
-    padding: 15px;
+    padding: 20px;
     background: white;
     border-top: 1px solid #e2e8f0;
-    min-height: 80px;
+    min-height: 100px;
     max-height: 120px;
 }
 

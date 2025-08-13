@@ -345,6 +345,14 @@
             addMessageToWindow(data.roomId, data.message);
         });
 
+        // Listen for all messages in rooms
+        socket.on('message', (data) => {
+            console.log('Message received:', data);
+            if (data.roomId !== undefined) {
+                addMessageToWindow(data.roomId, data);
+            }
+        });
+
         socket.on('admin-message', (data) => {
             const { roomId, message } = data;
             if (chatWindows[roomId]) {
