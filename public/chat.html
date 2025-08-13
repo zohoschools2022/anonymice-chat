@@ -44,7 +44,7 @@
       <div class="input-row">
         <button class="emoji-btn" id="emojiToggle" type="button">😊</button>
         <div style="position: relative; flex: 1;">
-          <textarea id="messageInput" class="chat-textarea" rows="3" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
+          <textarea id="messageInput" class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
           <button class="send-btn" id="sendBtn" type="button" title="Send">➤</button>
         </div>
       </div>
@@ -79,17 +79,14 @@
   emojiToggle.addEventListener('click', () => {
   const open = emojiPanel.hidden;
   emojiPanel.hidden = !open;
-  inputWrapper.classList.toggle('show-emoji', !emojiPanel.hidden);
 });
 
 
 messageInput.addEventListener('focus', () => {
   emojiPanel.hidden = true;
-  inputWrapper.classList.remove('show-emoji');
 });
 messageInput.addEventListener('keydown', () => {
   emojiPanel.hidden = true;
-  inputWrapper.classList.remove('show-emoji');
 });
 
 function insertAtCursor(textarea, text) {
