@@ -765,40 +765,16 @@ body {
     min-height: 44px;
     max-height: 120px;
     resize: none;
-    padding: 12px 60px 12px 12px; /* Space for send button */
+    padding: 12px;
     border: 2px solid #e2e8f0;
     border-radius: 12px;
     font-size: 0.95rem;
     line-height: 1.4;
     background: #fff;
     font-family: inherit;
-    position: relative;
 }
 
 .chat-textarea:focus {
     outline: none;
     border-color: #667eea;
-}
-
-.send-btn {
-    position: absolute;
-    right: 8px;
-    bottom: 8px;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: #667eea;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    transition: background 0.2s;
-    z-index: 10;
-}
-
-.send-btn:hover { 
-    background: #5a67d8; 
 }

@@ -26,8 +26,7 @@
     <div class="input-wrapper">
       <div class="input-row">
         <div style="position: relative; flex: 1;">
-          <textarea id="messageInput" class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
-          <button class="send-btn" id="sendBtn" type="button" title="Send">➤</button>
+          <textarea id="messageInput" class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" maxlength="2000"></textarea>
         </div>
       </div>
     </div>
@@ -51,8 +50,6 @@
         const participantName = urlParams.get('name');
     
   // ... keep your existing socket setup above
-
-  const sendBtn = document.getElementById('sendBtn');
 
   function autoResize() {
     messageInput.style.height = 'auto';
