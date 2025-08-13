@@ -750,18 +750,13 @@ body {
     background: #a8a8a8;
 } 
 
-/* Multiline chat input - Fixed layout with no overlap */
+/* Simple chat input - Clean and minimal */
 .input-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     width: 100%;
 }
 
 .input-row {
     display: flex;
-    align-items: flex-end;
-    gap: 12px;
     width: 100%;
 }
 
@@ -770,7 +765,7 @@ body {
     min-height: 44px;
     max-height: 120px;
     resize: none;
-    padding: 12px 60px 12px 12px; /* Extra space for send button */
+    padding: 12px 60px 12px 12px; /* Space for send button */
     border: 2px solid #e2e8f0;
     border-radius: 12px;
     font-size: 0.95rem;
@@ -806,63 +801,4 @@ body {
 
 .send-btn:hover { 
     background: #5a67d8; 
-}
-
-.emoji-btn {
-    padding: 10px 12px;
-    background: #f8f9fa;
-    border: 2px solid #e2e8f0;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 18px;
-    transition: all 0.2s;
-    align-self: flex-end;
-    min-width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.emoji-btn:hover {
-    background: #e9ecef;
-    border-color: #667eea;
-}
-
-.emoji-panel {
-    background: #fff;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-    flex-wrap: wrap;
-    max-width: 100%;
-    margin-bottom: 0;
-}
-
-.emoji-panel button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 20px;
-    padding: 8px;
-    border-radius: 8px;
-    transition: background 0.2s;
-    min-width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.emoji-panel button:hover {
-    background: #f0f0f0;
-}
-
-/* Remove the show-emoji class that was causing overlap */
-.input-wrapper.show-emoji { 
-    padding-bottom: 0; 
 }

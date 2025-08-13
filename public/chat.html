@@ -24,25 +24,7 @@
 
 <div class="chat-input">
     <div class="input-wrapper">
-      <div class="emoji-panel" id="emojiPanel" hidden>
-        <button type="button" class="emoji">😀</button>
-        <button type="button" class="emoji">😂</button>
-        <button type="button" class="emoji">❤️</button>
-        <button type="button" class="emoji">👍</button>
-        <button type="button" class="emoji">🙏</button>
-        <button type="button" class="emoji">🔥</button>
-        <button type="button" class="emoji">🎉</button>
-        <button type="button" class="emoji">😮</button>
-        <button type="button" class="emoji">😢</button>
-        <button type="button" class="emoji">😊</button>
-        <button type="button" class="emoji">🤔</button>
-        <button type="button" class="emoji">😎</button>
-        <button type="button" class="emoji">💯</button>
-        <button type="button" class="emoji">😭</button>
-        <button type="button" class="emoji">🤣</button>
-      </div>
       <div class="input-row">
-        <button class="emoji-btn" id="emojiToggle" type="button">😊</button>
         <div style="position: relative; flex: 1;">
           <textarea id="messageInput" class="chat-textarea" rows="2" placeholder="Type your message... (Shift+Enter for new line)" maxlength="2000"></textarea>
           <button class="send-btn" id="sendBtn" type="button" title="Send">➤</button>
@@ -70,50 +52,13 @@
     
   // ... keep your existing socket setup above
 
-  const emojiToggle = document.getElementById('emojiToggle');
-  const emojiPanel = document.getElementById('emojiPanel');
   const sendBtn = document.getElementById('sendBtn');
-
-  const inputWrapper = document.querySelector('.input-wrapper');
-
-  emojiToggle.addEventListener('click', () => {
-  const open = emojiPanel.hidden;
-  emojiPanel.hidden = !open;
-});
-
-
-messageInput.addEventListener('focus', () => {
-  emojiPanel.hidden = true;
-});
-messageInput.addEventListener('keydown', () => {
-  emojiPanel.hidden = true;
-});
-
-function insertAtCursor(textarea, text) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = textarea.value;
-    textarea.value = value.slice(0, start) + text + value.slice(end);
-    textarea.selectionStart = textarea.selectionEnd = start + text.length;
-    autoResize();
-  }
 
   function autoResize() {
     messageInput.style.height = 'auto';
     messageInput.style.height = Math.min(messageInput.scrollHeight, 160) + 'px';
   }
   messageInput.addEventListener('input', autoResize);
-
-  emojiToggle.addEventListener('click', () => {
-    emojiPanel.hidden = !emojiPanel.hidden;
-  });
-
-  emojiPanel.addEventListener('click', (e) => {
-    if (e.target.classList.contains('emoji')) {
-      insertAtCursor(messageInput, e.target.textContent);
-      messageInput.focus();
-    }
-  });
 
   window.addEventListener('click', (e) => {
     if (!emojiPanel.contains(e.target) && e.target !== emojiToggle) {
