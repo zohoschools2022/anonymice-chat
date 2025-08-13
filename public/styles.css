@@ -231,6 +231,54 @@ body {
     margin: 0 auto;
 }
 
+/* Admin chat containers - exact same design as individual chat page */
+.admin-chat-container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.admin-chat-container .chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
+
+.admin-chat-container .chat-header h2 {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.admin-chat-container .chat-info {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.admin-chat-container .chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background: #f8fafc;
+    min-height: 150px;
+}
+
+.admin-chat-container .chat-input {
+    padding: 15px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1400px) {
     .chat-grid {
