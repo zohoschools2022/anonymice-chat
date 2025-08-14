@@ -71,8 +71,8 @@ io.on('connection', (socket) => {
     socket.on('knock', (data) => {
         const availableRooms = [];
         
-        // Find available rooms
-        for (let i = 0; i < maxRooms; i++) {
+        // Find available rooms (1-8)
+        for (let i = 1; i <= maxRooms; i++) {
             if (!chatRooms.has(i)) {
                 availableRooms.push(i);
             }
