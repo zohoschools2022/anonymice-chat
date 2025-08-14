@@ -149,6 +149,9 @@ io.on('connection', (socket) => {
             // Store participant-room mapping
             participantRooms.set(participantName, roomId);
 
+            // Add to active connections immediately
+            activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
+
             socket.join(`room-${roomId}`);
             
             // Add welcome message
@@ -174,11 +177,15 @@ io.on('connection', (socket) => {
             };
             
             console.log('🎉 Sending new-participant event to admin-room:', adminEvent);
+            console.log('🎉 Event data structure:', JSON.stringify(adminEvent));
             io.to('admin-room').emit('new-participant', adminEvent);
             
             // Also log who's in admin-room
             const adminRoom = io.sockets.adapter.rooms.get('admin-room');
             console.log('👥 Users in admin-room:', adminRoom ? adminRoom.size : 0);
+            if (adminRoom) {
+                console.log('👥 Admin room socket IDs:', Array.from(adminRoom));
+            }
 
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
@@ -190,8 +197,14 @@ io.on('connection', (socket) => {
 
     // Handle chat messages
     socket.on('send-message', (data) => {
+        console.log('📨 Message received from socket:', socket.id);
         const connection = activeConnections.get(socket.id);
-        if (!connection) return;
+        console.log('🔗 Connection found:', connection);
+        if (!connection) {
+            console.log('❌ No connection found for socket:', socket.id);
+            console.log('📊 Active connections:', Array.from(activeConnections.entries()));
+            return;
+        }
 
         const message = {
             id: Date.now(),
