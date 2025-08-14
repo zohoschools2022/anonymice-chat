@@ -149,9 +149,6 @@ io.on('connection', (socket) => {
             // Store participant-room mapping
             participantRooms.set(participantName, roomId);
 
-            // Add to active connections immediately
-            activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
-
             socket.join(`room-${roomId}`);
             
             // Add welcome message
