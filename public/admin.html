@@ -181,6 +181,35 @@
             color: #718096;
         }
         
+        .emoji-panel {
+            display: flex;
+            gap: 6px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 8px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        
+        .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 3px 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+            color: #cbd5e0;
+        }
+        
+        .emoji-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .emoji-btn:active {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
         .system-message {
             text-align: center;
             color: #a0aec0;
@@ -292,6 +321,23 @@
                 <div class="system-message">No participant yet</div>
             </div>
             <div class="chat-input">
+                <div class="emoji-panel">
+                    <button class="emoji-btn" onclick="insertEmoji(1, '😊')">😊</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '😂')">😂</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '❤️')">❤️</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '👍')">👍</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '👎')">👎</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '🎉')">🎉</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '🔥')">🔥</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '💯')">💯</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '🤔')">🤔</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '😎')">😎</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '🙏')">🙏</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '✨')">✨</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '🌟')">🌟</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '💪')">💪</button>
+                    <button class="emoji-btn" onclick="insertEmoji(1, '🎯')">🎯</button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -315,6 +361,23 @@
                 <div class="system-message">No participant yet</div>
             </div>
             <div class="chat-input">
+                <div class="emoji-panel">
+                    <button class="emoji-btn" onclick="insertEmoji(2, '😊')">😊</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '😂')">😂</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '❤️')">❤️</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '👍')">👍</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '👎')">👎</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '🎉')">🎉</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '🔥')">🔥</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '💯')">💯</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '🤔')">🤔</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '😎')">😎</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '🙏')">🙏</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '✨')">✨</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '🌟')">🌟</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '💪')">💪</button>
+                    <button class="emoji-btn" onclick="insertEmoji(2, '🎯')">🎯</button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -338,6 +401,23 @@
                 <div class="system-message">No participant yet</div>
             </div>
             <div class="chat-input">
+                <div class="emoji-panel">
+                    <button class="emoji-btn" onclick="insertEmoji(3, '😊')">😊</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '😂')">😂</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '❤️')">❤️</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '👍')">👍</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '👎')">👎</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '🎉')">🎉</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '🔥')">🔥</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '💯')">💯</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '🤔')">🤔</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '😎')">😎</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '🙏')">🙏</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '✨')">✨</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '🌟')">🌟</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '💪')">💪</button>
+                    <button class="emoji-btn" onclick="insertEmoji(3, '🎯')">🎯</button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -682,6 +762,18 @@
             }
             activeRooms = activeCount;
             activeRoomsSpan.textContent = `Active Rooms: ${activeRooms}`;
+        }
+
+        function insertEmoji(roomId, emoji) {
+            const textarea = document.getElementById(`input-${roomId}`);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            
+            textarea.value = text.substring(0, start) + emoji + text.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+            textarea.focus();
+            autoResize(textarea);
         }
 
 

@@ -6,6 +6,35 @@
     <title>Chat Room - Anonymice Chat</title>
     <link rel="stylesheet" href="styles.css">
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        .emoji-panel {
+            display: flex;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+            margin-bottom: 10px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        
+        .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .emoji-btn:hover {
+            background-color: #f1f5f9;
+        }
+        
+        .emoji-btn:active {
+            background-color: #e2e8f0;
+        }
+    </style>
 </head>
 <body class="chat-body">
     <div class="chat-container">
@@ -22,15 +51,32 @@
         </div>
 
 
-<div class="chat-input">
-    <div class="input-wrapper">
-      <div class="input-row">
-        <div style="position: relative; flex: 1;">
-          <textarea id="messageInput" class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" maxlength="2000"></textarea>
+        <div class="chat-input">
+            <div class="emoji-panel">
+                <button class="emoji-btn" onclick="insertEmoji('😊')">😊</button>
+                <button class="emoji-btn" onclick="insertEmoji('😂')">😂</button>
+                <button class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button>
+                <button class="emoji-btn" onclick="insertEmoji('👍')">👍</button>
+                <button class="emoji-btn" onclick="insertEmoji('👎')">👎</button>
+                <button class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button>
+                <button class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button>
+                <button class="emoji-btn" onclick="insertEmoji('💯')">💯</button>
+                <button class="emoji-btn" onclick="insertEmoji('🤔')">🤔</button>
+                <button class="emoji-btn" onclick="insertEmoji('😎')">😎</button>
+                <button class="emoji-btn" onclick="insertEmoji('🙏')">🙏</button>
+                <button class="emoji-btn" onclick="insertEmoji('✨')">✨</button>
+                <button class="emoji-btn" onclick="insertEmoji('🌟')">🌟</button>
+                <button class="emoji-btn" onclick="insertEmoji('💪')">💪</button>
+                <button class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button>
+            </div>
+            <div class="input-wrapper">
+                <div class="input-row">
+                    <div style="position: relative; flex: 1;">
+                        <textarea id="messageInput" class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" maxlength="2000"></textarea>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
 
   <div class="chat-footer">
             <small>💡 Messages are not saved. Chat anonymously with Rajendran D.</small>
@@ -57,11 +103,7 @@
   }
   messageInput.addEventListener('input', autoResize);
 
-  window.addEventListener('click', (e) => {
-    if (!emojiPanel.contains(e.target) && e.target !== emojiToggle) {
-      emojiPanel.hidden = true;
-    }
-  });
+
 
 
 
@@ -146,6 +188,18 @@
             messageElement.textContent = text;
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function insertEmoji(emoji) {
+            const textarea = document.getElementById('messageInput');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            
+            textarea.value = text.substring(0, start) + emoji + text.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+            textarea.focus();
+            autoResize();
         }
     
         // Handle enter key - Enter to send, Shift+Enter for new line
