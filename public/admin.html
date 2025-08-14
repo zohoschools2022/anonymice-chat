@@ -701,6 +701,7 @@
             // Force update with alert for testing
             if (data.roomId && data.participant) {
                 updateRoomParticipant(data.roomId, data.participant);
+                updateRoomStatus(data.roomId, 'active');
                 updateActiveRooms();
                 console.log('✅ Update functions called successfully');
             } else {
@@ -892,7 +893,17 @@
             const statusIndicator = document.getElementById(`status-${roomId}`);
             const cleanupBtn = document.getElementById(`cleanup-${roomId}`);
             
-            if (status === 'left') {
+            console.log(`Updating room ${roomId} status to: ${status}`);
+            
+            if (status === 'active') {
+                if (statusIndicator) {
+                    statusIndicator.textContent = '●';
+                    statusIndicator.className = 'status-indicator online';
+                }
+                if (cleanupBtn) {
+                    cleanupBtn.style.display = 'none';
+                }
+            } else if (status === 'left') {
                 if (participantSpan) {
                     participantSpan.textContent = 'Left';
                     participantSpan.style.color = '#ef4444';
@@ -921,10 +932,33 @@
 
         function playPingSound() {
             try {
-                pingSound.currentTime = 0;
-                pingSound.play();
+                // Create Web Audio API context
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+                
+                console.log('Ping sound played');
             } catch (error) {
                 console.log('Could not play ping sound:', error);
+                // Fallback to audio element
+                try {
+                    pingSound.currentTime = 0;
+                    pingSound.play();
+                } catch (fallbackError) {
+                    console.log('Fallback audio also failed:', fallbackError);
+                }
             }
         }
 

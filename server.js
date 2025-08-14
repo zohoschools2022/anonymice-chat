@@ -132,6 +132,8 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(i);
             if (!room || room.status === 'cleaned') {
                 availableRooms.push(i);
+            } else {
+                console.log(`Room ${i} status: ${room.status}`);
             }
         }
 
@@ -144,6 +146,7 @@ io.on('connection', (socket) => {
                 id: roomId,
                 participant: { name: participantName },
                 messages: [],
+                status: 'active',
                 created: Date.now()
             });
 
@@ -306,7 +309,9 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             
             if (room && room.status === 'left') {
-                // Mark room as cleaned and ready for reuse
+                // Clear chat log and mark room as cleaned
+                room.messages = [];
+                room.participant = null;
                 room.status = 'cleaned';
                 room.cleanedAt = new Date().toISOString();
                 
