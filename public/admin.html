@@ -540,11 +540,19 @@
 
         // New participant joined
         socket.on('new-participant', (data) => {
+            console.log('🎉 NEW PARTICIPANT EVENT RECEIVED!');
             console.log('New participant received:', data);
             console.log('Room ID:', data.roomId, 'Type:', typeof data.roomId);
             console.log('Participant:', data.participant);
-            updateRoomParticipant(data.roomId, data.participant);
-            updateActiveRooms();
+            
+            // Force update with alert for testing
+            if (data.roomId && data.participant) {
+                updateRoomParticipant(data.roomId, data.participant);
+                updateActiveRooms();
+                console.log('✅ Update functions called successfully');
+            } else {
+                console.log('❌ Missing roomId or participant data');
+            }
         });
 
         // Admin message from participant
@@ -675,6 +683,34 @@
             activeRooms = activeCount;
             activeRoomsSpan.textContent = `Active Rooms: ${activeRooms}`;
         }
+
+        // Test function to manually update a room (for debugging)
+        function testUpdateRoom(roomId, participantName) {
+            console.log('🧪 Testing manual room update for room:', roomId, 'participant:', participantName);
+            const participantSpan = document.getElementById(`participant-${roomId}`);
+            const statusIndicator = document.getElementById(`status-${roomId}`);
+            
+            console.log('Found elements:', { participantSpan, statusIndicator });
+            
+            if (participantSpan) {
+                participantSpan.textContent = participantName;
+                participantSpan.style.color = '#48bb78';
+                console.log('✅ Manual update successful');
+            } else {
+                console.log('❌ Manual update failed - element not found');
+            }
+            
+            if (statusIndicator) {
+                statusIndicator.textContent = '●';
+                statusIndicator.className = 'status-indicator online';
+            }
+        }
+
+        // Test the first room manually after 3 seconds
+        setTimeout(() => {
+            console.log('🧪 Running manual test update...');
+            testUpdateRoom(1, 'TestUser');
+        }, 3000);
     </script>
 </body>
 </html> 
