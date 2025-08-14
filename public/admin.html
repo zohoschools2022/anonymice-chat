@@ -748,8 +748,17 @@
             // Preserve newlines in message text
             const formattedText = message.text.replace(/\n/g, '<br>');
             
-            // Format timestamp to local time
-            const timestamp = new Date(message.timestamp).toLocaleTimeString();
+            // Debug timestamp
+            console.log('📅 Admin received timestamp:', message.timestamp, 'Type:', typeof message.timestamp);
+            
+            // Format timestamp to local time with error handling
+            let timestamp;
+            try {
+                timestamp = new Date(message.timestamp).toLocaleTimeString();
+            } catch (error) {
+                console.log('❌ Timestamp error in admin:', error);
+                timestamp = new Date().toLocaleTimeString(); // Fallback
+            }
             
             messageElement.innerHTML = `
                 <div class="message-header">
@@ -773,7 +782,7 @@
                     id: Date.now(),
                     text: message,
                     sender: 'Rajendran D',
-                    timestamp: new Date().toLocaleTimeString(),
+                    timestamp: new Date().toISOString(),
                     isAdmin: true
                 };
                 

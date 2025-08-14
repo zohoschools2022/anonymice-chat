@@ -213,6 +213,9 @@ io.on('connection', (socket) => {
             timestamp: new Date().toISOString(),
             isAdmin: connection.type === 'admin'
         };
+        
+        console.log('📅 Message timestamp created:', message.timestamp);
+        console.log('📅 Timestamp type:', typeof message.timestamp);
 
         if (connection.type === 'admin') {
             // Admin message to specific room
