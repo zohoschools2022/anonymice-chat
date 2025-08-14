@@ -211,6 +211,26 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
         
+        .cleanup-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .cleanup-btn:hover {
+            background: #059669;
+        }
+        
+        .cleanup-btn:active {
+            background: #047857;
+        }
+        
         .system-message {
             text-align: center;
             color: #a0aec0;
@@ -317,6 +337,7 @@
                     <span class="participant-name" id="participant-1">Waiting...</span>
                     <span class="status-indicator" id="status-1">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-1" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-1">
                 <div class="system-message">No participant yet</div>
@@ -351,6 +372,7 @@
                     <span class="participant-name" id="participant-2">Waiting...</span>
                     <span class="status-indicator" id="status-2">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-2" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-2">
                 <div class="system-message">No participant yet</div>
@@ -385,6 +407,7 @@
                     <span class="participant-name" id="participant-3">Waiting...</span>
                     <span class="status-indicator" id="status-3">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-3" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-3">
                 <div class="system-message">No participant yet</div>
@@ -419,6 +442,7 @@
                     <span class="participant-name" id="participant-4">Waiting...</span>
                     <span class="status-indicator" id="status-4">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-4" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-4">
                 <div class="system-message">No participant yet</div>
@@ -453,6 +477,7 @@
                     <span class="participant-name" id="participant-5">Waiting...</span>
                     <span class="status-indicator" id="status-5">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-5" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-5">
                 <div class="system-message">No participant yet</div>
@@ -487,6 +512,7 @@
                     <span class="participant-name" id="participant-6">Waiting...</span>
                     <span class="status-indicator" id="status-6">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-6" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-6">
                 <div class="system-message">No participant yet</div>
@@ -521,6 +547,7 @@
                     <span class="participant-name" id="participant-7">Waiting...</span>
                     <span class="status-indicator" id="status-7">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-7" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-7">
                 <div class="system-message">No participant yet</div>
@@ -555,6 +582,7 @@
                     <span class="participant-name" id="participant-8">Waiting...</span>
                     <span class="status-indicator" id="status-8">○</span>
                 </div>
+                <button class="cleanup-btn" id="cleanup-8" style="display: none;">🧹 Clean</button>
             </div>
             <div class="chat-messages" id="messages-8">
                 <div class="system-message">No participant yet</div>
@@ -582,14 +610,21 @@
         </div>
     </div>
 
+    <!-- Audio for notifications -->
+    <audio id="pingSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" type="audio/wav">
+    </audio>
+
     <script>
         const socket = io();
         const activeRoomsSpan = document.getElementById('activeRooms');
+        const pingSound = document.getElementById('pingSound');
         let activeRooms = 0;
 
         // Initialize all 8 rooms (1-8)
         for (let i = 1; i <= 8; i++) {
             setupInputUI(i);
+            setupCleanupButton(i);
         }
 
         // Connect as admin
@@ -677,6 +712,23 @@
         socket.on('admin-message', (data) => {
             console.log('Admin message received:', data);
             addMessageToWindow(data.roomId, data.message);
+            // Play ping sound for new messages
+            playPingSound();
+        });
+
+        // Participant left room
+        socket.on('participant-left', (data) => {
+            console.log('Participant left:', data);
+            addMessageToWindow(data.roomId, data.message);
+            updateRoomStatus(data.roomId, 'left');
+            playPingSound();
+        });
+
+        // Room cleaned
+        socket.on('room-cleaned', (data) => {
+            console.log('Room cleaned:', data);
+            addMessageToWindow(data.roomId, data.message);
+            updateRoomStatus(data.roomId, 'cleaned');
         });
 
         // New message received
@@ -821,6 +873,59 @@
             textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
             textarea.focus();
             autoResize(textarea);
+        }
+
+        function setupCleanupButton(roomId) {
+            const cleanupBtn = document.getElementById(`cleanup-${roomId}`);
+            if (cleanupBtn) {
+                cleanupBtn.addEventListener('click', () => {
+                    if (confirm(`Are you sure you want to clean Room ${roomId}?`)) {
+                        socket.emit('cleanup-room', { roomId });
+                        cleanupBtn.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        function updateRoomStatus(roomId, status) {
+            const participantSpan = document.getElementById(`participant-${roomId}`);
+            const statusIndicator = document.getElementById(`status-${roomId}`);
+            const cleanupBtn = document.getElementById(`cleanup-${roomId}`);
+            
+            if (status === 'left') {
+                if (participantSpan) {
+                    participantSpan.textContent = 'Left';
+                    participantSpan.style.color = '#ef4444';
+                }
+                if (statusIndicator) {
+                    statusIndicator.textContent = '○';
+                    statusIndicator.className = 'status-indicator';
+                }
+                if (cleanupBtn) {
+                    cleanupBtn.style.display = 'inline-block';
+                }
+            } else if (status === 'cleaned') {
+                if (participantSpan) {
+                    participantSpan.textContent = 'Ready';
+                    participantSpan.style.color = '#10b981';
+                }
+                if (statusIndicator) {
+                    statusIndicator.textContent = '○';
+                    statusIndicator.className = 'status-indicator';
+                }
+                if (cleanupBtn) {
+                    cleanupBtn.style.display = 'none';
+                }
+            }
+        }
+
+        function playPingSound() {
+            try {
+                pingSound.currentTime = 0;
+                pingSound.play();
+            } catch (error) {
+                console.log('Could not play ping sound:', error);
+            }
         }
 
         // Test function to manually update a room (for debugging)

@@ -127,9 +127,10 @@ io.on('connection', (socket) => {
     socket.on('knock', (data) => {
         const availableRooms = [];
         
-        // Find available rooms (1-8)
+        // Find available rooms (1-8) - only rooms that don't exist or are cleaned
         for (let i = 1; i <= maxRooms; i++) {
-            if (!chatRooms.has(i)) {
+            const room = chatRooms.get(i);
+            if (!room || room.status === 'cleaned') {
                 availableRooms.push(i);
             }
         }
@@ -257,7 +258,77 @@ io.on('connection', (socket) => {
         activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
         socket.join(`room-${roomId}`);
         socket.emit('room-joined', { roomId, messages: room.messages, participant: room.participant });
-      });
+    });
+
+    // Handle participant leaving room
+    socket.on('leave-room', () => {
+        const connection = activeConnections.get(socket.id);
+        if (connection && connection.type === 'participant') {
+            const roomId = connection.roomId;
+            const room = chatRooms.get(roomId);
+            
+            if (room) {
+                // Mark room as left (not deleted)
+                room.status = 'left';
+                room.leftAt = new Date().toISOString();
+                
+                // Add leave message to room
+                const leaveMessage = {
+                    id: Date.now(),
+                    text: `${connection.name} has left the chat room.`,
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false
+                };
+                
+                room.messages.push(leaveMessage);
+                saveData();
+                
+                // Notify admin
+                io.to('admin-room').emit('participant-left', { 
+                    roomId, 
+                    participant: connection,
+                    message: leaveMessage
+                });
+                
+                console.log(`Participant ${connection.name} left room ${roomId}`);
+            }
+            
+            activeConnections.delete(socket.id);
+        }
+    });
+
+    // Handle admin room cleanup
+    socket.on('cleanup-room', (data) => {
+        const connection = activeConnections.get(socket.id);
+        if (connection && connection.type === 'admin') {
+            const roomId = data.roomId;
+            const room = chatRooms.get(roomId);
+            
+            if (room && room.status === 'left') {
+                // Mark room as cleaned and ready for reuse
+                room.status = 'cleaned';
+                room.cleanedAt = new Date().toISOString();
+                
+                // Add cleanup message
+                const cleanupMessage = {
+                    id: Date.now(),
+                    text: 'Room has been cleaned and is ready for new participants.',
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false
+                };
+                
+                room.messages.push(cleanupMessage);
+                saveData();
+                
+                // Notify admin
+                io.to('admin-room').emit('room-cleaned', { roomId, message: cleanupMessage });
+                
+                console.log(`Admin cleaned room ${roomId}`);
+            }
+        }
+    });
     
 
     // Handle disconnection

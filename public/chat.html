@@ -36,6 +36,26 @@
         .emoji-btn:active {
             background-color: #e2e8f0;
         }
+        
+        .leave-room-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .leave-room-btn:hover {
+            background: #dc2626;
+        }
+        
+        .leave-room-btn:active {
+            background: #b91c1c;
+        }
     </style>
 </head>
 <body class="chat-body">
@@ -46,6 +66,7 @@
                 <span id="participantName">Loading...</span>
                 <span class="status-indicator online">●</span>
             </div>
+            <button id="leaveRoomBtn" class="leave-room-btn">🚪 Leave Room</button>
         </div>
 
         <div class="chat-messages" id="messages">
@@ -86,6 +107,7 @@
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const participantNameSpan = document.getElementById('participantName');
+        const leaveRoomBtn = document.getElementById('leaveRoomBtn');
     
         // Get room and name from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -216,6 +238,16 @@
                 autoResize();
             }
             // Let Shift+Enter pass through naturally for new lines
+        });
+
+        // Handle leave room button
+        leaveRoomBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to leave this chat room?')) {
+                socket.emit('leave-room');
+                addSystemMessage('You have left the chat room.');
+                leaveRoomBtn.disabled = true;
+                messageInput.disabled = true;
+            }
         });
     
 
