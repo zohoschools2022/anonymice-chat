@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,6 +22,56 @@ const chatRooms = new Map();
 const activeConnections = new Map();
 const participantRooms = new Map(); // Track which participant is in which room
 const maxRooms = 8;
+
+// Persistence file
+const DATA_FILE = path.join(__dirname, 'chat_data.json');
+
+// Load existing data on startup
+function loadData() {
+    try {
+        if (fs.existsSync(DATA_FILE)) {
+            const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+            console.log('📂 Loading existing chat data...');
+            
+            // Restore chat rooms
+            if (data.chatRooms) {
+                data.chatRooms.forEach(([roomId, room]) => {
+                    chatRooms.set(roomId, room);
+                });
+                console.log(`📂 Loaded ${chatRooms.size} chat rooms`);
+            }
+            
+            // Restore participant mappings
+            if (data.participantRooms) {
+                data.participantRooms.forEach(([participant, roomId]) => {
+                    participantRooms.set(participant, roomId);
+                });
+                console.log(`📂 Loaded ${participantRooms.size} participant mappings`);
+            }
+        }
+    } catch (error) {
+        console.log('📂 No existing data found or error loading:', error.message);
+    }
+}
+
+// Save data to file
+function saveData() {
+    try {
+        const data = {
+            chatRooms: Array.from(chatRooms.entries()),
+            participantRooms: Array.from(participantRooms.entries()),
+            timestamp: new Date().toISOString()
+        };
+        
+        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+        console.log('💾 Chat data saved successfully');
+    } catch (error) {
+        console.log('❌ Error saving chat data:', error.message);
+    }
+}
+
+// Load data on startup
+loadData();
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -111,6 +162,9 @@ io.on('connection', (socket) => {
             
             chatRooms.get(roomId).messages.push(welcomeMessage);
             
+            // Save data after room creation
+            saveData();
+            
             socket.emit('room-assigned', { roomId, name: participantName });
             
             // Notify admin
@@ -153,6 +207,7 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             if (room) {
                 room.messages.push(message);
+                saveData(); // Save after admin message
                 io.to(`room-${roomId}`).emit('new-message', message);
                 socket.emit('message-sent', message);
             }
@@ -162,6 +217,7 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             if (room) {
                 room.messages.push(message);
+                saveData(); // Save after participant message
                 io.to(`room-${roomId}`).emit('new-message', message);
                 io.to('admin-room').emit('admin-message', { roomId, message });
                 socket.emit('message-sent', message);
@@ -198,6 +254,8 @@ io.on('connection', (socket) => {
             if (connection.type === 'participant') {
                 const roomId = connection.roomId;
                 chatRooms.delete(roomId);
+                participantRooms.delete(connection.name);
+                saveData(); // Save after participant leaves
                 io.to('admin-room').emit('participant-left', { roomId, participant: connection });
                 console.log(`Participant ${connection.name} left room ${roomId}`);
             }
