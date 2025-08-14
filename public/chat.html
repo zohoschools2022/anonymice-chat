@@ -10,10 +10,13 @@
         .emoji-panel {
             display: flex;
             gap: 4px;
-            padding: 6px 0;
+            padding: 8px 15px;
+            border-top: 1px solid #e2e8f0;
             border-bottom: 1px solid #e2e8f0;
-            margin-bottom: 8px;
+            background: #f8fafc;
             justify-content: center;
+            height: 50px;
+            align-items: center;
         }
         
         .emoji-btn {
@@ -50,18 +53,19 @@
         </div>
 
 
+        <div class="emoji-panel">
+            <button class="emoji-btn" onclick="insertEmoji('😊')">😊</button>
+            <button class="emoji-btn" onclick="insertEmoji('😞')">😞</button>
+            <button class="emoji-btn" onclick="insertEmoji('👍')">👍</button>
+            <button class="emoji-btn" onclick="insertEmoji('👎')">👎</button>
+            <button class="emoji-btn" onclick="insertEmoji('😍')">😍</button>
+            <button class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button>
+            <button class="emoji-btn" onclick="insertEmoji('💔')">💔</button>
+            <button class="emoji-btn" onclick="insertEmoji('💯')">💯</button>
+            <button class="emoji-btn" onclick="insertEmoji('🙏')">🙏</button>
+        </div>
+
         <div class="chat-input">
-            <div class="emoji-panel">
-                <button class="emoji-btn" onclick="insertEmoji('😊')">😊</button>
-                <button class="emoji-btn" onclick="insertEmoji('😞')">😞</button>
-                <button class="emoji-btn" onclick="insertEmoji('👍')">👍</button>
-                <button class="emoji-btn" onclick="insertEmoji('👎')">👎</button>
-                <button class="emoji-btn" onclick="insertEmoji('😍')">😍</button>
-                <button class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button>
-                <button class="emoji-btn" onclick="insertEmoji('💔')">💔</button>
-                <button class="emoji-btn" onclick="insertEmoji('💯')">💯</button>
-                <button class="emoji-btn" onclick="insertEmoji('🙏')">🙏</button>
-            </div>
             <div class="input-wrapper">
                 <div class="input-row">
                     <div style="position: relative; flex: 1;">
