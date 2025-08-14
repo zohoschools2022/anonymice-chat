@@ -53,8 +53,13 @@ io.on('connection', (socket) => {
 
     // Handle admin connection
     socket.on('admin-connect', () => {
+        console.log('🔐 Admin connecting with socket ID:', socket.id);
         activeConnections.set(socket.id, { type: 'admin', name: ADMIN_NAME });
         socket.join('admin-room');
+        
+        // Verify admin joined the room
+        const adminRoom = io.sockets.adapter.rooms.get('admin-room');
+        console.log('👥 Admin joined admin-room. Total users in admin-room:', adminRoom ? adminRoom.size : 0);
         
         // Send current rooms with full data
         const currentRooms = Array.from(chatRooms.entries()).map(([roomId, room]) => ({
@@ -109,10 +114,17 @@ io.on('connection', (socket) => {
             socket.emit('room-assigned', { roomId, name: participantName });
             
             // Notify admin
-            io.to('admin-room').emit('new-participant', {
+            const adminEvent = {
                 roomId,
                 participant: { name: participantName }
-            });
+            };
+            
+            console.log('🎉 Sending new-participant event to admin-room:', adminEvent);
+            io.to('admin-room').emit('new-participant', adminEvent);
+            
+            // Also log who's in admin-room
+            const adminRoom = io.sockets.adapter.rooms.get('admin-room');
+            console.log('👥 Users in admin-room:', adminRoom ? adminRoom.size : 0);
 
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
