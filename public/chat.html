@@ -10,12 +10,12 @@
         .emoji-panel {
             display: flex;
             gap: 4px;
-            padding: 8px 15px;
+            padding: 4px 15px;
             border-top: 1px solid #e2e8f0;
             border-bottom: 1px solid #e2e8f0;
             background: #f8fafc;
             justify-content: center;
-            height: 50px;
+            height: 35px;
             align-items: center;
         }
         
@@ -164,8 +164,17 @@
             // Preserve newlines in message text
             const formattedText = message.text.replace(/\n/g, '<br>');
             
-            // Format timestamp to local time
-            const timestamp = new Date(message.timestamp).toLocaleTimeString();
+            // Debug timestamp
+            console.log('Message timestamp:', message.timestamp, 'Type:', typeof message.timestamp);
+            
+            // Format timestamp to local time with error handling
+            let timestamp;
+            try {
+                timestamp = new Date(message.timestamp).toLocaleTimeString();
+            } catch (error) {
+                console.log('Timestamp error:', error);
+                timestamp = new Date().toLocaleTimeString(); // Fallback to current time
+            }
             
             messageElement.innerHTML = `
                 <div class="message-header">
