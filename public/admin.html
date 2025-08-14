@@ -7,38 +7,61 @@
     <link rel="stylesheet" href="styles.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* Admin dashboard styles */
+        /* Admin dashboard styles - Dark Theme */
         .admin-body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
             min-height: 100vh;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         
         .admin-header {
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(45, 55, 72, 0.95);
             backdrop-filter: blur(10px);
-            padding: 20px;
+            padding: 12px 20px;
             text-align: center;
-            border-radius: 20px;
+            border-radius: 15px;
             margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .admin-header h1 {
-            color: #2d3748;
-            font-size: 2rem;
-            margin-bottom: 8px;
+        .admin-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .admin-header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .admin-header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .admin-title {
+            font-size: 1.1rem;
             font-weight: 700;
+            color: #f7fafc;
+        }
+        
+        .admin-subtitle {
+            color: #a0aec0;
+            font-size: 0.85rem;
         }
         
         .admin-info {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            font-weight: 600;
-            color: #2d3748;
+            color: #cbd5e0;
+            font-size: 0.85rem;
         }
         
         /* Chat grid - 2x4 layout */
@@ -49,37 +72,40 @@
             gap: 20px;
             max-width: 1600px;
             margin: 0 auto;
-            height: calc(100vh - 200px);
+            height: calc(100vh - 120px);
         }
         
-        /* Individual chat containers */
+        /* Individual chat containers - Dark Theme */
         .admin-chat-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            background: #2d3748;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            border: 2px solid rgba(102, 126, 234, 0.2);
+            border: 2px solid rgba(102, 126, 234, 0.3);
             transition: all 0.3s ease;
         }
         
         .admin-chat-container:hover {
-            border-color: rgba(102, 126, 234, 0.4);
+            border-color: rgba(102, 126, 234, 0.6);
             transform: translateY(-2px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
         }
         
         .admin-chat-container .chat-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 15px;
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            color: #f7fafc;
+            padding: 12px;
             text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .admin-chat-container .chat-header h2 {
-            margin-bottom: 8px;
-            font-size: 1.1rem;
+            margin-bottom: 6px;
+            font-size: 1rem;
             font-weight: 600;
+            color: #e2e8f0;
         }
         
         .admin-chat-container .chat-info {
@@ -88,12 +114,13 @@
             align-items: center;
             gap: 8px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            color: #cbd5e0;
         }
         
         .status-indicator {
-            font-size: 1rem;
-            color: #cbd5e0;
+            font-size: 0.9rem;
+            color: #718096;
         }
         
         .status-indicator.online {
@@ -104,16 +131,16 @@
             flex: 1;
             padding: 15px;
             overflow-y: auto;
-            background: #f8fafc;
-            min-height: 200px;
-            max-height: calc(100% - 140px);
+            background: #1a202c;
+            min-height: 250px;
+            max-height: calc(100% - 120px);
         }
         
         .admin-chat-container .chat-input {
             padding: 15px;
-            background: white;
-            border-top: 1px solid #e2e8f0;
-            min-height: 80px;
+            background: #2d3748;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            min-height: 100px;
         }
         
         .input-wrapper {
@@ -128,26 +155,33 @@
         
         .chat-textarea {
             width: 100%;
-            padding: 8px 12px;
-            border: 2px solid #e2e8f0;
+            padding: 10px 12px;
+            border: 2px solid #4a5568;
             border-radius: 8px;
             font-size: 0.9rem;
             resize: none;
             font-family: inherit;
             box-sizing: border-box;
+            background: #1a202c;
+            color: #f7fafc;
         }
         
         .chat-textarea:focus {
             outline: none;
             border-color: #667eea;
+            background: #2d3748;
+        }
+        
+        .chat-textarea::placeholder {
+            color: #718096;
         }
         
         .system-message {
             text-align: center;
-            color: #718096;
+            color: #a0aec0;
             font-style: italic;
             padding: 8px;
-            background: rgba(113, 128, 150, 0.1);
+            background: rgba(160, 174, 192, 0.1);
             border-radius: 6px;
             margin: 8px 0;
             font-size: 0.85rem;
@@ -162,14 +196,17 @@
         }
         
         .participant-message {
-            background: #e2e8f0;
+            background: #4a5568;
+            color: #f7fafc;
             margin-right: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .admin-message {
             background: #667eea;
-            color: white;
+            color: #f7fafc;
             margin-left: auto;
+            border: 1px solid rgba(102, 126, 234, 0.3);
         }
         
         .message-header {
@@ -208,49 +245,35 @@
             }
             
             .admin-header {
-                padding: 15px;
+                padding: 10px 15px;
             }
             
-            .admin-header h1 {
-                font-size: 1.5rem;
+            .admin-header-content {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .admin-title {
+                font-size: 1rem;
             }
         }
     </style>
 </head>
 <body class="admin-body">
     <div class="admin-header">
-        <h1>🐭 Admin Dashboard</h1>
-        <p>Managing 8 concurrent chat sessions</p>
-        <div class="admin-info">
-            <span>Admin: Rajendran D</span>
-            <span id="activeRooms">Active Rooms: 0</span>
+        <div class="admin-header-content">
+            <div class="admin-header-left">
+                <span class="admin-title">🐭 Admin Dashboard</span>
+                <span class="admin-subtitle">Managing 8 concurrent chat sessions</span>
+            </div>
+            <div class="admin-header-right">
+                <span class="admin-info">Admin: Rajendran D</span>
+                <span class="admin-info" id="activeRooms">Active Rooms: 0</span>
+            </div>
         </div>
     </div>
 
     <div class="chat-grid">
-        <!-- Room 0 -->
-        <div class="admin-chat-container" id="chat-0" data-room="0">
-            <div class="chat-header">
-                <h2>💬 Room 0</h2>
-                <div class="chat-info">
-                    <span class="participant-name" id="participant-0">Waiting...</span>
-                    <span class="status-indicator" id="status-0">○</span>
-                </div>
-            </div>
-            <div class="chat-messages" id="messages-0">
-                <div class="system-message">No participant yet</div>
-            </div>
-            <div class="chat-input">
-                <div class="input-wrapper">
-                    <div class="input-row">
-                        <div style="position: relative; flex: 1;">
-                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-0"></textarea>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Room 1 -->
         <div class="admin-chat-container" id="chat-1" data-room="1">
             <div class="chat-header">
@@ -411,6 +434,29 @@
                 </div>
             </div>
         </div>
+
+        <!-- Room 8 -->
+        <div class="admin-chat-container" id="chat-8" data-room="8">
+            <div class="chat-header">
+                <h2>💬 Room 8</h2>
+                <div class="chat-info">
+                    <span class="participant-name" id="participant-8">Waiting...</span>
+                    <span class="status-indicator" id="status-8">○</span>
+                </div>
+            </div>
+            <div class="chat-messages" id="messages-8">
+                <div class="system-message">No participant yet</div>
+            </div>
+            <div class="chat-input">
+                <div class="input-wrapper">
+                    <div class="input-row">
+                        <div style="position: relative; flex: 1;">
+                            <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-8"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -418,8 +464,8 @@
         const activeRoomsSpan = document.getElementById('activeRooms');
         let activeRooms = 0;
 
-        // Initialize all 8 rooms
-        for (let i = 0; i < 8; i++) {
+        // Initialize all 8 rooms (1-8)
+        for (let i = 1; i <= 8; i++) {
             setupInputUI(i);
         }
 
@@ -455,8 +501,8 @@
             // Join admin room to receive messages
             socket.join('admin-room');
             
-            // Join all specific rooms (0-7) to receive messages
-            for (let i = 0; i < 8; i++) {
+            // Join all specific rooms (1-8) to receive messages
+            for (let i = 1; i <= 8; i++) {
                 socket.join(`room-${i}`);
             }
             
@@ -592,7 +638,7 @@
         function updateActiveRooms() {
             // Count rooms with active participants
             let activeCount = 0;
-            for (let i = 0; i < 8; i++) {
+            for (let i = 1; i <= 8; i++) {
                 const participantSpan = document.getElementById(`participant-${i}`);
                 if (participantSpan && participantSpan.textContent !== 'Waiting...') {
                     activeCount++;
