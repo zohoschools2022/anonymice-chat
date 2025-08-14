@@ -85,6 +85,7 @@
             overflow: hidden;
             border: 2px solid rgba(102, 126, 234, 0.3);
             transition: all 0.3s ease;
+            height: 420px;
         }
         
         .admin-chat-container:hover {
@@ -128,19 +129,17 @@
         }
         
         .admin-chat-container .chat-messages {
-            flex: 1;
             padding: 15px;
             overflow-y: auto;
             background: #1a202c;
-            min-height: 280px;
-            max-height: calc(100% - 140px);
+            height: 280px;
         }
         
         .admin-chat-container .chat-input {
             padding: 15px;
             background: #2d3748;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            min-height: 100px;
+            height: 100px;
         }
         
         .input-wrapper {
@@ -496,7 +495,8 @@
 
         // Admin connection events
         socket.on('admin-connected', (data) => {
-            console.log('Admin connected:', data);
+            console.log('Admin connected, received data:', data);
+            console.log('Number of rooms:', data.rooms ? data.rooms.length : 0);
             
             // Join admin room to receive messages
             socket.join('admin-room');
@@ -508,11 +508,14 @@
             
             // Show existing rooms if any
             if (data.rooms && data.rooms.length > 0) {
+                console.log('Processing existing rooms:', data.rooms);
                 data.rooms.forEach(room => {
+                    console.log('Processing room:', room);
                     updateRoomParticipant(room.roomId, room.participant);
                     
                     // Show existing messages
                     if (room.messages && room.messages.length > 0) {
+                        console.log(`Room ${room.roomId} has ${room.messages.length} messages`);
                         const messagesContainer = document.getElementById(`messages-${room.roomId}`);
                         if (messagesContainer) {
                             messagesContainer.innerHTML = '';
@@ -522,6 +525,8 @@
                         }
                     }
                 });
+            } else {
+                console.log('No existing rooms found');
             }
             
             updateActiveRooms();
@@ -529,7 +534,9 @@
 
         // New participant joined
         socket.on('new-participant', (data) => {
-            console.log('New participant:', data);
+            console.log('New participant received:', data);
+            console.log('Room ID:', data.roomId, 'Type:', typeof data.roomId);
+            console.log('Participant:', data.participant);
             updateRoomParticipant(data.roomId, data.participant);
             updateActiveRooms();
         });
@@ -563,19 +570,28 @@
 
         function updateRoomParticipant(roomId, participant) {
             console.log('Updating room participant:', roomId, participant);
+            console.log('Looking for elements with IDs: participant-' + roomId, 'status-' + roomId, 'messages-' + roomId);
             
             const participantSpan = document.getElementById(`participant-${roomId}`);
             const statusIndicator = document.getElementById(`status-${roomId}`);
             const messagesContainer = document.getElementById(`messages-${roomId}`);
             
+            console.log('Found elements:', { participantSpan, statusIndicator, messagesContainer });
+            
             if (participantSpan) {
                 participantSpan.textContent = participant.name;
                 participantSpan.style.color = '#48bb78';
+                console.log('Updated participant span to:', participant.name);
+            } else {
+                console.log('Participant span not found for room:', roomId);
             }
             
             if (statusIndicator) {
                 statusIndicator.textContent = '●';
                 statusIndicator.className = 'status-indicator online';
+                console.log('Updated status indicator');
+            } else {
+                console.log('Status indicator not found for room:', roomId);
             }
             
             if (messagesContainer) {
@@ -583,7 +599,10 @@
                 const systemMessage = messagesContainer.querySelector('.system-message');
                 if (systemMessage && systemMessage.textContent === 'No participant yet') {
                     systemMessage.remove();
+                    console.log('Removed "No participant yet" message');
                 }
+            } else {
+                console.log('Messages container not found for room:', roomId);
             }
         }
 
