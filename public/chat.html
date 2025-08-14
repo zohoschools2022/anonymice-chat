@@ -125,10 +125,13 @@
             // Preserve newlines in message text
             const formattedText = message.text.replace(/\n/g, '<br>');
             
+            // Format timestamp to local time
+            const timestamp = new Date(message.timestamp).toLocaleTimeString();
+            
             messageElement.innerHTML = `
                 <div class="message-header">
                     <span class="sender">${message.sender}</span>
-                    <span class="timestamp">${message.timestamp}</span>
+                    <span class="timestamp">${timestamp}</span>
                 </div>
                 <div class="message-text">${formattedText}</div>
             `;

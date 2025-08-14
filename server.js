@@ -100,7 +100,7 @@ io.on('connection', (socket) => {
                 id: Date.now(),
                 text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
                 sender: 'System',
-                timestamp: new Date().toLocaleTimeString(),
+                timestamp: new Date().toISOString(),
                 isAdmin: false
             };
             
@@ -131,7 +131,7 @@ io.on('connection', (socket) => {
             id: Date.now(),
             text: data.text,
             sender: connection.name,
-            timestamp: new Date().toLocaleTimeString(),
+            timestamp: new Date().toISOString(),
             isAdmin: connection.type === 'admin'
         };
 
