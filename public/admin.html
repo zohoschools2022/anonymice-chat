@@ -636,9 +636,6 @@
             setupCleanupButton(i);
         }
 
-        // Initialize notification status
-        updateNotificationStatus();
-
         // Connect as admin
         console.log('🔐 Connecting as admin...');
         socket.emit('admin-connect');
@@ -1009,6 +1006,9 @@
                 }
             }
         }
+
+        // Initialize notification status after variables are declared
+        updateNotificationStatus();
 
         function showNotification(message) {
             // Only show notification if page is not visible or not focused
