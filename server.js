@@ -309,28 +309,32 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             
             if (room && room.status === 'left') {
-                // Clear chat log and mark room as cleaned
-                room.messages = [];
-                room.participant = null;
-                room.status = 'cleaned';
-                room.cleanedAt = new Date().toISOString();
+                // Completely delete the room - fresh start
+                chatRooms.delete(roomId);
                 
-                // Add cleanup message
-                const cleanupMessage = {
-                    id: Date.now(),
-                    text: 'Room has been cleaned and is ready for new participants.',
-                    sender: 'System',
-                    timestamp: new Date().toISOString(),
-                    isAdmin: false
-                };
+                // Remove from participant mappings
+                for (const [participant, mappedRoomId] of participantRooms.entries()) {
+                    if (mappedRoomId === roomId) {
+                        participantRooms.delete(participant);
+                        break;
+                    }
+                }
                 
-                room.messages.push(cleanupMessage);
                 saveData();
                 
-                // Notify admin
-                io.to('admin-room').emit('room-cleaned', { roomId, message: cleanupMessage });
+                // Notify admin that room is completely cleared
+                io.to('admin-room').emit('room-cleaned', { 
+                    roomId, 
+                    message: {
+                        id: Date.now(),
+                        text: 'Room has been completely cleared and is ready for new participants.',
+                        sender: 'System',
+                        timestamp: new Date().toISOString(),
+                        isAdmin: false
+                    }
+                });
                 
-                console.log(`Admin cleaned room ${roomId}`);
+                console.log(`Admin cleaned room ${roomId} - room completely deleted`);
             }
         }
     });

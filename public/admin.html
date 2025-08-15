@@ -730,6 +730,14 @@
             console.log('Room cleaned:', data);
             addMessageToWindow(data.roomId, data.message);
             updateRoomStatus(data.roomId, 'cleaned');
+            
+            // Clear the messages container after a brief delay to show the cleanup message
+            setTimeout(() => {
+                const messagesContainer = document.getElementById(`messages-${data.roomId}`);
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '<div class="system-message">No participant yet</div>';
+                }
+            }, 2000);
         });
 
         // New message received
@@ -881,11 +889,102 @@
             if (cleanupBtn) {
                 cleanupBtn.addEventListener('click', () => {
                     if (confirm(`Are you sure you want to clean Room ${roomId}?`)) {
+                        // Copy chat transcript to clipboard before cleaning
+                        copyChatTranscriptToClipboard(roomId);
+                        
+                        // Send cleanup request to server
                         socket.emit('cleanup-room', { roomId });
                         cleanupBtn.style.display = 'none';
                     }
                 });
             }
+        }
+
+        function copyChatTranscriptToClipboard(roomId) {
+            const messagesContainer = document.getElementById(`messages-${roomId}`);
+            const participantSpan = document.getElementById(`participant-${roomId}`);
+            
+            if (!messagesContainer) return;
+            
+            // Get participant name
+            const participantName = participantSpan ? participantSpan.textContent : 'Unknown';
+            
+            // Format the transcript
+            let transcript = `📋 Chat Transcript - Room ${roomId}\n`;
+            transcript += `👤 Participant: ${participantName}\n`;
+            transcript += `📅 Date: ${new Date().toLocaleDateString()}\n`;
+            transcript += `⏰ Time: ${new Date().toLocaleTimeString()}\n`;
+            transcript += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            
+            // Get all messages
+            const messages = messagesContainer.querySelectorAll('.message');
+            messages.forEach((msgElement) => {
+                const senderElement = msgElement.querySelector('.sender');
+                const timestampElement = msgElement.querySelector('.timestamp');
+                const textElement = msgElement.querySelector('.message-text');
+                
+                if (senderElement && timestampElement && textElement) {
+                    const sender = senderElement.textContent;
+                    const timestamp = timestampElement.textContent;
+                    const text = textElement.textContent;
+                    
+                    const senderLabel = sender === 'Rajendran D' ? '👨‍💼 Admin' : '👤 User';
+                    transcript += `${timestamp} ${senderLabel}: ${text}\n\n`;
+                }
+            });
+            
+            transcript += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            transcript += `📊 Total Messages: ${messages.length}\n`;
+            transcript += `✅ Room cleaned and ready for next participant`;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(transcript).then(() => {
+                console.log('📋 Chat transcript copied to clipboard');
+                // Show a brief notification
+                showNotification(`Chat transcript for Room ${roomId} copied to clipboard!`);
+            }).catch(err => {
+                console.error('❌ Failed to copy to clipboard:', err);
+                // Fallback: show transcript in alert
+                alert('Chat transcript copied to clipboard:\n\n' + transcript.substring(0, 500) + '...');
+            });
+        }
+
+        function showNotification(message) {
+            // Create a temporary notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #10b981;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideIn 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            // Add animation CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+                style.remove();
+            }, 3000);
         }
 
         function updateRoomStatus(roomId, status) {
