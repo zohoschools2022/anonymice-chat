@@ -70,6 +70,14 @@
             font-size: 0.85rem;
         }
         
+        .notification-status {
+            color: #a0aec0;
+            font-size: 0.75rem;
+            margin-left: 15px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
         /* Chat grid - 2x4 layout */
         .chat-grid {
             display: grid;
@@ -324,6 +332,7 @@
             <div class="admin-header-right">
                 <span class="admin-info">Admin: Rajendran D</span>
                 <span class="admin-info" id="activeRooms">Active Rooms: 0</span>
+                <span class="notification-status">🔇 Notifications muted (page active)</span>
             </div>
         </div>
     </div>
@@ -626,6 +635,9 @@
             setupInputUI(i);
             setupCleanupButton(i);
         }
+
+        // Initialize notification status
+        updateNotificationStatus();
 
         // Connect as admin
         console.log('Connecting as admin...');
@@ -949,7 +961,50 @@
             });
         }
 
+        // Track page visibility and focus state
+        let isPageVisible = true;
+        let isPageFocused = true;
+
+        // Listen for page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            isPageVisible = !document.hidden;
+            console.log('Page visibility changed:', isPageVisible ? 'visible' : 'hidden');
+        });
+
+        // Listen for window focus/blur events
+        window.addEventListener('focus', () => {
+            isPageFocused = true;
+            console.log('Page focused');
+            updateNotificationStatus();
+        });
+
+        window.addEventListener('blur', () => {
+            isPageFocused = false;
+            console.log('Page lost focus');
+            updateNotificationStatus();
+        });
+
+        // Update notification status indicator
+        function updateNotificationStatus() {
+            const statusIndicator = document.querySelector('.notification-status');
+            if (statusIndicator) {
+                if (isPageVisible && isPageFocused) {
+                    statusIndicator.textContent = '🔇 Notifications muted (page active)';
+                    statusIndicator.style.color = '#a0aec0';
+                } else {
+                    statusIndicator.textContent = '🔊 Notifications active';
+                    statusIndicator.style.color = '#10b981';
+                }
+            }
+        }
+
         function showNotification(message) {
+            // Only show notification if page is not visible or not focused
+            if (isPageVisible && isPageFocused) {
+                console.log('Notification muted - admin page is active and focused');
+                return;
+            }
+
             // Create a temporary notification element
             const notification = document.createElement('div');
             notification.style.cssText = `
@@ -1030,6 +1085,12 @@
         }
 
         function playPingSound() {
+            // Only play sound if page is not visible or not focused
+            if (isPageVisible && isPageFocused) {
+                console.log('Audio muted - admin page is active and focused');
+                return;
+            }
+
             try {
                 // Create Web Audio API context
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
