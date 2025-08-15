@@ -171,6 +171,30 @@
             updateAdminStatusIndicator(adminStatus.isActive);
         });
 
+        // Handle service shutdown
+        socket.on('service-shutdown', (message) => {
+            console.log('Service shutdown message received:', message);
+            
+            // Add shutdown message to chat
+            addMessage(message);
+            
+            // Disable input and show shutdown state
+            disableChatInput();
+            
+            // Show shutdown notification
+            showShutdownNotification();
+        });
+
+        // Handle service status updates
+        socket.on('service-status-update', (data) => {
+            console.log('Service status update:', data);
+            if (!data.enabled) {
+                disableChatInput();
+            } else {
+                enableChatInput();
+            }
+        });
+
         // Update admin status indicator
         function updateAdminStatusIndicator(isActive) {
             if (statusIndicator) {
@@ -184,6 +208,100 @@
                     statusIndicator.title = 'Admin is away';
                 }
             }
+        }
+
+        function disableChatInput() {
+            const textarea = document.getElementById('messageInput');
+            const emojiPanel = document.querySelector('.emoji-panel');
+            const leaveBtn = document.getElementById('leaveRoomBtn');
+            
+            if (textarea) {
+                textarea.disabled = true;
+                textarea.placeholder = 'Chat disabled - service is offline';
+                textarea.style.backgroundColor = '#f7fafc';
+                textarea.style.color = '#a0aec0';
+                textarea.style.cursor = 'not-allowed';
+            }
+            
+            if (emojiPanel) {
+                emojiPanel.style.opacity = '0.5';
+                emojiPanel.style.pointerEvents = 'none';
+            }
+            
+            if (leaveBtn) {
+                leaveBtn.disabled = true;
+                leaveBtn.style.opacity = '0.5';
+                leaveBtn.style.cursor = 'not-allowed';
+            }
+        }
+
+        function enableChatInput() {
+            const textarea = document.getElementById('messageInput');
+            const emojiPanel = document.querySelector('.emoji-panel');
+            const leaveBtn = document.getElementById('leaveRoomBtn');
+            
+            if (textarea) {
+                textarea.disabled = false;
+                textarea.placeholder = 'Type your message... (Enter to send, Shift+Enter for new line)';
+                textarea.style.backgroundColor = '';
+                textarea.style.color = '';
+                textarea.style.cursor = '';
+            }
+            
+            if (emojiPanel) {
+                emojiPanel.style.opacity = '';
+                emojiPanel.style.pointerEvents = '';
+            }
+            
+            if (leaveBtn) {
+                leaveBtn.disabled = false;
+                leaveBtn.style.opacity = '';
+                leaveBtn.style.cursor = '';
+            }
+        }
+
+        function showShutdownNotification() {
+            // Create a prominent shutdown notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #ef4444;
+                color: white;
+                padding: 20px 30px;
+                border-radius: 12px;
+                font-size: 16px;
+                font-weight: 600;
+                text-align: center;
+                z-index: 10000;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                animation: fadeIn 0.5s ease-out;
+            `;
+            notification.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 10px;">🐱</div>
+                <div>The Cat Has Left The House</div>
+                <div style="font-size: 14px; margin-top: 5px; opacity: 0.9;">Chat service is temporarily disabled</div>
+            `;
+            
+            // Add animation CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                notification.remove();
+                style.remove();
+            }, 5000);
         }
     
         socket.on('room-not-found', () => {
@@ -204,7 +322,7 @@
     
         function sendMessage() {
             const message = messageInput.value.trim();
-            if (message) {
+            if (message && !messageInput.disabled) {
                 socket.emit('send-message', { text: message });
                 messageInput.value = '';
             }

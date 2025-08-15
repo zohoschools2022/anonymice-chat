@@ -149,12 +149,30 @@ io.on('connection', (socket) => {
     socket.on('toggle-service', (data) => {
         const connection = activeConnections.get(socket.id);
         if (connection && connection.type === 'admin') {
+            const wasEnabled = serviceEnabled;
             serviceEnabled = data.enabled;
             
             console.log(`🔌 Service ${serviceEnabled ? 'ENABLED' : 'DISABLED'} by admin`);
             
             // Broadcast service status to all connected users
             io.emit('service-status-update', { enabled: serviceEnabled });
+            
+            // If service was turned OFF, send shutdown message to all active users
+            if (wasEnabled && !serviceEnabled) {
+                console.log('🚫 Service disabled - sending shutdown message to all users');
+                
+                // Send shutdown message to all connected users
+                const shutdownMessage = {
+                    id: Date.now(),
+                    text: "The Cat Has Left The House. Sorry. No More Play!",
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false,
+                    isShutdown: true
+                };
+                
+                io.emit('service-shutdown', shutdownMessage);
+            }
         }
     });
 
@@ -250,6 +268,12 @@ io.on('connection', (socket) => {
 
     // Handle chat messages
     socket.on('send-message', (data) => {
+        // Check if service is enabled
+        if (!serviceEnabled) {
+            console.log('🚫 Message rejected - service is disabled');
+            return;
+        }
+
         console.log('📨 Message received from socket:', socket.id);
         const connection = activeConnections.get(socket.id);
         console.log('🔗 Connection found:', connection);
