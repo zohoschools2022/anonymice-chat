@@ -198,10 +198,18 @@ io.on('connection', (socket) => {
             
             console.log('🎉 Sending new-participant event to admin-room:', adminEvent);
             console.log('🎉 Event data structure:', JSON.stringify(adminEvent));
-            io.to('admin-room').emit('new-participant', adminEvent);
+            
+            // Check if admin is connected
+            const adminRoom = io.sockets.adapter.rooms.get('admin-room');
+            if (adminRoom && adminRoom.size > 0) {
+                io.to('admin-room').emit('new-participant', adminEvent);
+                console.log('✅ new-participant event sent to admin-room');
+            } else {
+                console.log('❌ No admin connected to admin-room');
+                console.log('👥 Admin room size:', adminRoom ? adminRoom.size : 0);
+            }
             
             // Also log who's in admin-room
-            const adminRoom = io.sockets.adapter.rooms.get('admin-room');
             console.log('👥 Users in admin-room:', adminRoom ? adminRoom.size : 0);
             if (adminRoom) {
                 console.log('👥 Admin room socket IDs:', Array.from(adminRoom));

@@ -640,7 +640,7 @@
         updateNotificationStatus();
 
         // Connect as admin
-        console.log('Connecting as admin...');
+        console.log('🔐 Connecting as admin...');
         socket.emit('admin-connect');
 
         function autoResize(textarea) {
@@ -666,11 +666,8 @@
 
         // Admin connection events
         socket.on('admin-connected', (data) => {
-            console.log('Admin connected, received data:', data);
+            console.log('✅ Admin connected, received data:', data);
             console.log('Number of rooms:', data.rooms ? data.rooms.length : 0);
-            
-            // Join admin room to receive messages
-            socket.join('admin-room');
             
             // Join all specific rooms (1-8) to receive messages
             for (let i = 1; i <= 8; i++) {
