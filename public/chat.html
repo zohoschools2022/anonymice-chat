@@ -195,6 +195,20 @@
             }
         });
 
+        // Handle service restoration
+        socket.on('service-restored', (message) => {
+            console.log('Service restored message received:', message);
+            
+            // Add welcome back message to chat
+            addMessage(message);
+            
+            // Re-enable chat input
+            enableChatInput();
+            
+            // Show welcome back notification
+            showWelcomeBackNotification();
+        });
+
         // Update admin status indicator
         function updateAdminStatusIndicator(isActive) {
             if (statusIndicator) {
@@ -302,6 +316,50 @@
                 notification.remove();
                 style.remove();
             }, 5000);
+        }
+
+        function showWelcomeBackNotification() {
+            // Create a welcome back notification
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #10b981;
+                color: white;
+                padding: 20px 30px;
+                border-radius: 12px;
+                font-size: 16px;
+                font-weight: 600;
+                text-align: center;
+                z-index: 10000;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                animation: fadeIn 0.5s ease-out;
+            `;
+            notification.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 10px;">🐱</div>
+                <div>The Cat is Back!</div>
+                <div style="font-size: 14px; margin-top: 5px; opacity: 0.9;">You can continue chatting now</div>
+            `;
+            
+            // Add animation CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+                    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 4 seconds
+            setTimeout(() => {
+                notification.remove();
+                style.remove();
+            }, 4000);
         }
     
         socket.on('room-not-found', () => {

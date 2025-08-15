@@ -173,6 +173,23 @@ io.on('connection', (socket) => {
                 
                 io.emit('service-shutdown', shutdownMessage);
             }
+            
+            // If service was turned ON, send welcome back message to all active users
+            if (!wasEnabled && serviceEnabled) {
+                console.log('✅ Service enabled - sending welcome back message to all users');
+                
+                // Send welcome back message to all connected users
+                const welcomeBackMessage = {
+                    id: Date.now(),
+                    text: "The Cat is back! You can continue chatting now.",
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false,
+                    isWelcomeBack: true
+                };
+                
+                io.emit('service-restored', welcomeBackMessage);
+            }
         }
     });
 
