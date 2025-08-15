@@ -23,6 +23,9 @@ const activeConnections = new Map();
 const participantRooms = new Map(); // Track which participant is in which room
 const maxRooms = 8;
 
+// Admin status tracking
+let adminStatus = { isActive: true, lastUpdate: new Date().toISOString() };
+
 // Persistence file
 const DATA_FILE = path.join(__dirname, 'chat_data.json');
 
@@ -121,6 +124,22 @@ io.on('connection', (socket) => {
         
         socket.emit('admin-connected', { rooms: currentRooms });
         console.log('Admin connected, sent rooms:', currentRooms);
+    });
+
+    // Handle admin status changes
+    socket.on('admin-status-change', (data) => {
+        const connection = activeConnections.get(socket.id);
+        if (connection && connection.type === 'admin') {
+            adminStatus = {
+                isActive: data.isActive,
+                lastUpdate: data.timestamp
+            };
+            
+            console.log(`👨‍💼 Admin status changed to: ${data.isActive ? 'active' : 'away'}`);
+            
+            // Broadcast admin status to all connected users
+            io.emit('admin-status-update', adminStatus);
+        }
     });
 
     // Handle participant knock
@@ -260,7 +279,12 @@ io.on('connection', (socket) => {
     
         activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
         socket.join(`room-${roomId}`);
-        socket.emit('room-joined', { roomId, messages: room.messages, participant: room.participant });
+        socket.emit('room-joined', { 
+            roomId, 
+            messages: room.messages, 
+            participant: room.participant,
+            adminStatus: adminStatus
+        });
     });
 
     // Handle participant leaving room

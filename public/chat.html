@@ -56,6 +56,10 @@
         .leave-room-btn:active {
             background: #b91c1c;
         }
+        
+        .status-indicator.away {
+            color: #f6ad55;
+        }
     </style>
 </head>
 <body class="chat-body">
@@ -108,6 +112,7 @@
         const messageInput = document.getElementById('messageInput');
         const participantNameSpan = document.getElementById('participantName');
         const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+        const statusIndicator = document.querySelector('.status-indicator');
     
         // Get room and name from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -145,6 +150,11 @@
             // Clear loading message
             messagesContainer.innerHTML = '';
             
+            // Update admin status indicator
+            if (data.adminStatus) {
+                updateAdminStatusIndicator(data.adminStatus.isActive);
+            }
+            
             // Add existing messages
             if (data.messages && data.messages.length > 0) {
                 data.messages.forEach(message => {
@@ -154,6 +164,27 @@
                 addSystemMessage('Chat started. You can now send messages!');
             }
         });
+
+        // Handle admin status updates
+        socket.on('admin-status-update', (adminStatus) => {
+            console.log('Admin status update:', adminStatus);
+            updateAdminStatusIndicator(adminStatus.isActive);
+        });
+
+        // Update admin status indicator
+        function updateAdminStatusIndicator(isActive) {
+            if (statusIndicator) {
+                if (isActive) {
+                    statusIndicator.textContent = '●';
+                    statusIndicator.className = 'status-indicator online';
+                    statusIndicator.title = 'Admin is online';
+                } else {
+                    statusIndicator.textContent = '●';
+                    statusIndicator.className = 'status-indicator away';
+                    statusIndicator.title = 'Admin is away';
+                }
+            }
+        }
     
         socket.on('room-not-found', () => {
             console.log('Room not found');

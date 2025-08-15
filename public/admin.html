@@ -969,6 +969,7 @@
         document.addEventListener('visibilitychange', () => {
             isPageVisible = !document.hidden;
             console.log('Page visibility changed:', isPageVisible ? 'visible' : 'hidden');
+            updateAdminStatus();
         });
 
         // Listen for window focus/blur events
@@ -976,13 +977,27 @@
             isPageFocused = true;
             console.log('Page focused');
             updateNotificationStatus();
+            updateAdminStatus();
         });
 
         window.addEventListener('blur', () => {
             isPageFocused = false;
             console.log('Page lost focus');
             updateNotificationStatus();
+            updateAdminStatus();
         });
+
+        // Update admin status and notify all users
+        function updateAdminStatus() {
+            const isAdminActive = isPageVisible && isPageFocused;
+            console.log('Admin status updated:', isAdminActive ? 'active' : 'away');
+            
+            // Emit admin status to server
+            socket.emit('admin-status-change', { 
+                isActive: isAdminActive,
+                timestamp: new Date().toISOString()
+            });
+        }
 
         // Update notification status indicator
         function updateNotificationStatus() {
