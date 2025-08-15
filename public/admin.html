@@ -78,6 +78,68 @@
             transition: color 0.3s ease;
         }
         
+        /* Service Switch Styles */
+        .service-switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4a5568;
+            transition: 0.3s;
+            border-radius: 24px;
+            border: 2px solid #2d3748;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #e2e8f0;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #48bb78;
+            border-color: #38a169;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        
+        .switch-label {
+            color: #a0aec0;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        
         /* Chat grid - 2x4 layout */
         .chat-grid {
             display: grid;
@@ -323,19 +385,26 @@
     </style>
 </head>
 <body class="admin-body">
-    <div class="admin-header">
-        <div class="admin-header-content">
-            <div class="admin-header-left">
-                <span class="admin-title">🐭 Admin Dashboard</span>
-                <span class="admin-subtitle">Managing 8 concurrent chat sessions</span>
-            </div>
-            <div class="admin-header-right">
-                <span class="admin-info">Admin: Rajendran D</span>
-                <span class="admin-info" id="activeRooms">Active Rooms: 0</span>
-                <span class="notification-status">🔇 Notifications muted (page active)</span>
+            <div class="admin-header">
+            <div class="admin-header-content">
+                <div class="admin-header-left">
+                    <span class="admin-title">🐭 Admin Dashboard</span>
+                    <span class="admin-subtitle">Managing 8 concurrent chat sessions</span>
+                </div>
+                <div class="admin-header-right">
+                    <span class="admin-info">Admin: Rajendran D</span>
+                    <span class="admin-info" id="activeRooms">Active Rooms: 0</span>
+                    <span class="notification-status">🔇 Notifications muted (page active)</span>
+                    <div class="service-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="serviceToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="switch-label" id="switchLabel">Service: OFF</span>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
     <div class="chat-grid">
         <!-- Room 1 -->
@@ -1009,6 +1078,25 @@
 
         // Initialize notification status after variables are declared
         updateNotificationStatus();
+
+        // Initialize service toggle
+        const serviceToggle = document.getElementById('serviceToggle');
+        const switchLabel = document.getElementById('switchLabel');
+        
+        // Set initial state (OFF by default)
+        serviceToggle.checked = false;
+        switchLabel.textContent = 'Service: OFF';
+        
+        // Handle service toggle
+        serviceToggle.addEventListener('change', () => {
+            const isEnabled = serviceToggle.checked;
+            switchLabel.textContent = isEnabled ? 'Service: ON' : 'Service: OFF';
+            
+            // Send toggle event to server
+            socket.emit('toggle-service', { enabled: isEnabled });
+            
+            console.log(`🔌 Service ${isEnabled ? 'enabled' : 'disabled'}`);
+        });
 
         function showNotification(message) {
             // Only show notification if page is not visible or not focused

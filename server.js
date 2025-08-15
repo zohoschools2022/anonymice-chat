@@ -26,6 +26,9 @@ const maxRooms = 8;
 // Admin status tracking
 let adminStatus = { isActive: true, lastUpdate: new Date().toISOString() };
 
+// Service status tracking (default: OFF)
+let serviceEnabled = false;
+
 // Persistence file
 const DATA_FILE = path.join(__dirname, 'chat_data.json');
 
@@ -142,8 +145,30 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle service toggle
+    socket.on('toggle-service', (data) => {
+        const connection = activeConnections.get(socket.id);
+        if (connection && connection.type === 'admin') {
+            serviceEnabled = data.enabled;
+            
+            console.log(`🔌 Service ${serviceEnabled ? 'ENABLED' : 'DISABLED'} by admin`);
+            
+            // Broadcast service status to all connected users
+            io.emit('service-status-update', { enabled: serviceEnabled });
+        }
+    });
+
     // Handle participant knock
     socket.on('knock', (data) => {
+        // Check if service is enabled
+        if (!serviceEnabled) {
+            console.log('🚫 Knock rejected - service is disabled');
+            socket.emit('service-disabled', { 
+                message: "The Cat is away. The mice can't play!" 
+            });
+            return;
+        }
+
         const availableRooms = [];
         
         // Find available rooms (1-8) - only rooms that don't exist or are cleaned

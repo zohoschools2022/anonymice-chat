@@ -58,6 +58,10 @@
         socket.on('no-rooms-available', () => {
             showStatus('❌ No rooms available. Please try again later.', 'error');
         });
+
+        socket.on('service-disabled', (data) => {
+            showStatus(`🐱 ${data.message}`, 'error');
+        });
     
         function showStatus(message, type) {
             statusDiv.textContent = message;
