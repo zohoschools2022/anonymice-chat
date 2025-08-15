@@ -60,6 +60,111 @@
         .status-indicator.away {
             color: #f6ad55;
         }
+        
+        /* Mobile-specific styles for user chat */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0;
+                margin: 0;
+            }
+            
+            .chat-header {
+                padding: 15px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .chat-header h2 {
+                font-size: 1.2rem;
+                margin: 0;
+            }
+            
+            .chat-info {
+                font-size: 0.9rem;
+            }
+            
+            .leave-room-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+                min-height: 200px;
+                max-height: calc(100vh - 300px);
+            }
+            
+            .emoji-panel {
+                padding: 8px 10px;
+                height: 40px;
+                gap: 2px;
+            }
+            
+            .emoji-btn {
+                font-size: 1.2rem;
+                padding: 4px 6px;
+            }
+            
+            .chat-input {
+                padding: 15px;
+                min-height: 100px;
+            }
+            
+            .chat-textarea {
+                min-height: 50px;
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 10px;
+            }
+            
+            .chat-footer {
+                padding: 10px 15px;
+                font-size: 0.8rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .chat-header {
+                padding: 12px;
+            }
+            
+            .chat-header h2 {
+                font-size: 1.1rem;
+            }
+            
+            .chat-messages {
+                padding: 12px;
+                max-height: calc(100vh - 280px);
+            }
+            
+            .emoji-panel {
+                padding: 6px 8px;
+                height: 35px;
+            }
+            
+            .emoji-btn {
+                font-size: 1.1rem;
+                padding: 3px 5px;
+            }
+            
+            .chat-input {
+                padding: 12px;
+                min-height: 90px;
+            }
+            
+            .chat-textarea {
+                min-height: 45px;
+                padding: 8px;
+            }
+        }
+        
+        /* Prevent zoom on input focus for iOS */
+        @media screen and (-webkit-min-device-pixel-ratio: 0) {
+            .chat-textarea {
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body class="chat-body">
@@ -123,7 +228,8 @@
 
   function autoResize() {
     messageInput.style.height = 'auto';
-    messageInput.style.height = Math.min(messageInput.scrollHeight, 160) + 'px';
+    const maxHeight = isMobile() ? 120 : 160;
+    messageInput.style.height = Math.min(messageInput.scrollHeight, maxHeight) + 'px';
   }
   messageInput.addEventListener('input', autoResize);
 
@@ -446,6 +552,29 @@
             }
             // Let Shift+Enter pass through naturally for new lines
         });
+
+        // Mobile-specific improvements
+        function isMobile() {
+            return window.innerWidth <= 768;
+        }
+
+        // Auto-focus input on mobile for better UX
+        if (isMobile()) {
+            // Delay focus to ensure page is fully loaded
+            setTimeout(() => {
+                messageInput.focus();
+            }, 500);
+        }
+
+        // Prevent zoom on double tap for mobile
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (event) => {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
 
         // Handle leave room button
         leaveRoomBtn.addEventListener('click', () => {
