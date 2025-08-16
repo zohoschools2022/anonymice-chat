@@ -162,12 +162,74 @@
             border: 2px solid rgba(102, 126, 234, 0.3);
             transition: all 0.3s ease;
             height: 400px;
+            position: relative;
+        }
+        
+        /* Inactive/No activity state */
+        .admin-chat-container.inactive {
+            background: #1a202c;
+            border-color: rgba(102, 126, 234, 0.1);
+            opacity: 0.6;
+        }
+        
+        .admin-chat-container.inactive .chat-header {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+        
+        .admin-chat-container.inactive .chat-messages {
+            background: #0f1419;
+        }
+        
+        .admin-chat-container.inactive .chat-input {
+            background: #1a202c;
+        }
+        
+        /* Unread messages state - Bright and attention-grabbing */
+        .admin-chat-container.has-unread {
+            background: #2d3748;
+            border-color: #f6ad55;
+            border-width: 3px;
+            box-shadow: 0 20px 40px rgba(246, 173, 85, 0.3);
+            animation: pulse-attention 2s infinite;
+        }
+        
+        .admin-chat-container.has-unread .chat-header {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+            border-bottom: 2px solid #f6ad55;
+        }
+        
+        .admin-chat-container.has-unread .chat-header h2 {
+            color: #ffffff;
+            font-weight: 700;
+        }
+        
+        .admin-chat-container.has-unread .chat-info {
+            color: #ffffff;
+        }
+        
+        /* Active but no new messages state */
+        .admin-chat-container.active {
+            background: #2d3748;
+            border-color: rgba(102, 126, 234, 0.5);
         }
         
         .admin-chat-container:hover {
             border-color: rgba(102, 126, 234, 0.6);
             transform: translateY(-2px);
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Pulse animation for unread tiles */
+        @keyframes pulse-attention {
+            0% {
+                box-shadow: 0 20px 40px rgba(246, 173, 85, 0.3);
+            }
+            50% {
+                box-shadow: 0 20px 40px rgba(246, 173, 85, 0.6);
+            }
+            100% {
+                box-shadow: 0 20px 40px rgba(246, 173, 85, 0.3);
+            }
         }
         
         .admin-chat-container .chat-header {
@@ -698,12 +760,20 @@
         const activeRoomsSpan = document.getElementById('activeRooms');
         const pingSound = document.getElementById('pingSound');
         let activeRooms = 0;
+        
+        // Unread message tracking
+        const unreadMessages = new Map(); // roomId -> count
+        const lastReadTime = new Map(); // roomId -> timestamp
 
         // Initialize all 8 rooms (1-8)
         for (let i = 1; i <= 8; i++) {
             setupInputUI(i);
             setupCleanupButton(i);
+            setupTileClickHandler(i);
         }
+        
+        // Initialize tile states
+        initializeTileStates();
 
         // Connect as admin
         console.log('🔐 Connecting as admin...');
@@ -778,6 +848,10 @@
                 updateRoomParticipant(data.roomId, data.participant);
                 updateRoomStatus(data.roomId, 'active');
                 updateActiveRooms();
+                
+                // Mark tile as active (no unread messages yet)
+                updateTileState(data.roomId, 'active');
+                
                 console.log('✅ Update functions called successfully');
             } else {
                 console.log('❌ Missing roomId or participant data');
@@ -788,6 +862,12 @@
         socket.on('admin-message', (data) => {
             console.log('Admin message received:', data);
             addMessageToWindow(data.roomId, data.message);
+            
+            // Mark message as unread (only if it's from participant, not admin)
+            if (data.message && !data.message.isAdmin) {
+                markMessageAsUnread(data.roomId);
+            }
+            
             // Play ping sound for new messages
             playPingSound();
         });
@@ -805,6 +885,10 @@
             console.log('Room cleaned:', data);
             addMessageToWindow(data.roomId, data.message);
             updateRoomStatus(data.roomId, 'cleaned');
+            
+            // Reset tile state to inactive
+            updateTileState(data.roomId, 'inactive');
+            unreadMessages.set(data.roomId, 0);
             
             // Clear the messages container after a brief delay to show the cleanup message
             setTimeout(() => {
@@ -931,6 +1015,9 @@
                 // Clear input and reset UI
                 input.value = '';
                 autoResize(input);
+                
+                // Mark room as read when admin sends a message
+                markRoomAsRead(roomId);
             }
         }
 
@@ -945,6 +1032,63 @@
             }
             activeRooms = activeCount;
             activeRoomsSpan.textContent = `Active Rooms: ${activeRooms}`;
+        }
+        
+        // Tile state management functions
+        function updateTileState(roomId, state) {
+            const tile = document.getElementById(`chat-${roomId}`);
+            if (!tile) return;
+            
+            // Remove all state classes
+            tile.classList.remove('inactive', 'active', 'has-unread');
+            
+            // Add the new state class
+            tile.classList.add(state);
+            
+            console.log(`🎨 Tile ${roomId} state updated to: ${state}`);
+        }
+        
+        function markMessageAsUnread(roomId) {
+            const currentCount = unreadMessages.get(roomId) || 0;
+            unreadMessages.set(roomId, currentCount + 1);
+            
+            // Update tile to show unread state
+            updateTileState(roomId, 'has-unread');
+            
+            console.log(`📬 Room ${roomId} has ${currentCount + 1} unread messages`);
+        }
+        
+        function markRoomAsRead(roomId) {
+            unreadMessages.set(roomId, 0);
+            lastReadTime.set(roomId, Date.now());
+            
+            // Update tile to show active state (no unread messages)
+            updateTileState(roomId, 'active');
+            
+            console.log(`✅ Room ${roomId} marked as read`);
+        }
+        
+        function initializeTileStates() {
+            // Set all tiles to inactive initially
+            for (let i = 1; i <= 8; i++) {
+                updateTileState(i, 'inactive');
+            }
+        }
+        
+        function setupTileClickHandler(roomId) {
+            const tile = document.getElementById(`chat-${roomId}`);
+            if (!tile) return;
+            
+            tile.addEventListener('click', () => {
+                // Mark room as read when admin clicks on it
+                markRoomAsRead(roomId);
+                
+                // Focus on the input area for immediate typing
+                const textarea = document.getElementById(`input-${roomId}`);
+                if (textarea) {
+                    textarea.focus();
+                }
+            });
         }
 
         function insertEmoji(roomId, emoji) {
