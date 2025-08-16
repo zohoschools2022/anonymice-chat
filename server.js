@@ -71,13 +71,15 @@ function saveData() {
         
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
         console.log('💾 Chat data saved successfully');
+        console.log('💾 Saved rooms:', Array.from(chatRooms.keys()));
     } catch (error) {
         console.log('❌ Error saving chat data:', error.message);
     }
 }
 
 // Load data on startup
-loadData();
+// loadData(); // Temporarily disabled to test if file persistence is causing the issue
+console.log('📂 File persistence temporarily disabled for testing');
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -252,7 +254,7 @@ io.on('connection', (socket) => {
             chatRooms.get(roomId).messages.push(welcomeMessage);
             
             // Save data after room creation
-            saveData();
+            // saveData(); // Temporarily disabled
             
             socket.emit('room-assigned', { roomId, name: participantName });
             
@@ -322,8 +324,8 @@ io.on('connection', (socket) => {
             const roomId = data.roomId;
             const room = chatRooms.get(roomId);
             if (room) {
-                room.messages.push(message);
-                saveData(); // Save after admin message
+                                       room.messages.push(message);
+                       // saveData(); // Temporarily disabled
                 io.to(`room-${roomId}`).emit('new-message', message);
                 socket.emit('message-sent', message);
             }
@@ -332,8 +334,8 @@ io.on('connection', (socket) => {
             const roomId = connection.roomId;
             const room = chatRooms.get(roomId);
             if (room) {
-                room.messages.push(message);
-                saveData(); // Save after participant message
+                                       room.messages.push(message);
+                       // saveData(); // Temporarily disabled
                 io.to(`room-${roomId}`).emit('new-message', message);
                 io.to('admin-room').emit('admin-message', { roomId, message });
                 socket.emit('message-sent', message);
@@ -392,7 +394,7 @@ io.on('connection', (socket) => {
                 };
                 
                 room.messages.push(leaveMessage);
-                saveData();
+                // saveData(); // Temporarily disabled
                 
                 // Notify admin
                 io.to('admin-room').emit('participant-left', { 
@@ -431,7 +433,7 @@ io.on('connection', (socket) => {
                     }
                 }
                 
-                saveData();
+                // saveData(); // Temporarily disabled
                 console.log(`🧹 Room ${roomId} completely deleted from chatRooms`);
                 console.log(`🧹 Current rooms after deletion:`, Array.from(chatRooms.keys()));
                 
@@ -461,7 +463,7 @@ io.on('connection', (socket) => {
                 const roomId = connection.roomId;
                 chatRooms.delete(roomId);
                 participantRooms.delete(connection.name);
-                saveData(); // Save after participant leaves
+                // saveData(); // Temporarily disabled
                 io.to('admin-room').emit('participant-left', { roomId, participant: connection });
                 console.log(`Participant ${connection.name} left room ${roomId}`);
             }
