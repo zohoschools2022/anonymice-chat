@@ -213,6 +213,42 @@
             border-color: rgba(102, 126, 234, 0.5);
         }
         
+        /* Participant left state - Red highlighting */
+        .admin-chat-container.participant-left {
+            background: #2d3748;
+            border-color: #e53e3e;
+            border-width: 3px;
+            box-shadow: 0 20px 40px rgba(229, 62, 62, 0.3);
+            animation: pulse-left 2s infinite;
+        }
+        
+        .admin-chat-container.participant-left .chat-header {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            border-bottom: 2px solid #e53e3e;
+        }
+        
+        .admin-chat-container.participant-left .chat-header h2 {
+            color: #ffffff;
+            font-weight: 700;
+        }
+        
+        .admin-chat-container.participant-left .chat-info {
+            color: #ffffff;
+        }
+        
+        /* Pulse animation for left tiles */
+        @keyframes pulse-left {
+            0% {
+                box-shadow: 0 20px 40px rgba(229, 62, 62, 0.3);
+            }
+            50% {
+                box-shadow: 0 20px 40px rgba(229, 62, 62, 0.6);
+            }
+            100% {
+                box-shadow: 0 20px 40px rgba(229, 62, 62, 0.3);
+            }
+        }
+        
         .admin-chat-container:hover {
             border-color: rgba(102, 126, 234, 0.6);
             transform: translateY(-2px);
@@ -751,14 +787,19 @@
     </div>
 
     <!-- Audio for notifications -->
-    <audio id="pingSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" type="audio/wav">
-    </audio>
+            <audio id="pingSound" preload="auto">
+            <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" type="audio/wav">
+        </audio>
+        
+        <audio id="enterSound" preload="auto">
+            <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT" type="audio/wav">
+        </audio>
 
     <script>
         const socket = io();
         const activeRoomsSpan = document.getElementById('activeRooms');
         const pingSound = document.getElementById('pingSound');
+        const enterSound = document.getElementById('enterSound');
         let activeRooms = 0;
         
         // Unread message tracking
@@ -852,6 +893,9 @@
                 // Mark tile as active (no unread messages yet)
                 updateTileState(data.roomId, 'active');
                 
+                // Play enter sound (double-tone) for new participant
+                playEnterSound();
+                
                 console.log('✅ Update functions called successfully');
             } else {
                 console.log('❌ Missing roomId or participant data');
@@ -877,6 +921,11 @@
             console.log('Participant left:', data);
             addMessageToWindow(data.roomId, data.message);
             updateRoomStatus(data.roomId, 'left');
+            
+            // Highlight tile to notify admin that participant left
+            updateTileState(data.roomId, 'participant-left');
+            
+            // Play ping sound for participant leaving
             playPingSound();
         });
 
@@ -1040,7 +1089,7 @@
             if (!tile) return;
             
             // Remove all state classes
-            tile.classList.remove('inactive', 'active', 'has-unread');
+            tile.classList.remove('inactive', 'active', 'has-unread', 'participant-left');
             
             // Add the new state class
             tile.classList.add(state);
@@ -1080,7 +1129,18 @@
             if (!tile) return;
             
             tile.addEventListener('click', () => {
-                // Mark room as read when admin clicks on it
+                // Check if tile is in participant-left state
+                if (tile.classList.contains('participant-left')) {
+                    // Show cleanup button when admin clicks on left participant tile
+                    const cleanupBtn = document.getElementById(`cleanup-${roomId}`);
+                    if (cleanupBtn) {
+                        cleanupBtn.style.display = 'block';
+                    }
+                    // Keep the red highlighting until admin cleans the room
+                    return;
+                }
+                
+                // Mark room as read when admin clicks on it (for unread messages)
                 markRoomAsRead(roomId);
                 
                 // Focus on the input area for immediate typing
@@ -1328,7 +1388,7 @@
             }
         }
 
-        function playPingSound() {
+                function playPingSound() {
             // Only play sound if page is not visible or not focused
             if (isPageVisible && isPageFocused) {
                 console.log('Audio muted - admin page is active and focused');
@@ -1340,19 +1400,19 @@
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
-                
+
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
-                
+
                 oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
                 oscillator.type = 'sine';
-                
+
                 gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                
+
                 oscillator.start(audioContext.currentTime);
                 oscillator.stop(audioContext.currentTime + 0.3);
-                
+
                 console.log('Ping sound played');
             } catch (error) {
                 console.log('Could not play ping sound:', error);
@@ -1360,6 +1420,60 @@
                 try {
                     pingSound.currentTime = 0;
                     pingSound.play();
+                } catch (fallbackError) {
+                    console.log('Fallback audio also failed:', fallbackError);
+                }
+            }
+        }
+        
+        function playEnterSound() {
+            // Only play sound if page is not visible or not focused
+            if (isPageVisible && isPageFocused) {
+                console.log('Audio muted - admin page is active and focused');
+                return;
+            }
+
+            try {
+                // Create Web Audio API context for double-tone
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // First tone (higher pitch)
+                const oscillator1 = audioContext.createOscillator();
+                const gainNode1 = audioContext.createGain();
+                oscillator1.connect(gainNode1);
+                gainNode1.connect(audioContext.destination);
+                
+                oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime);
+                oscillator1.type = 'sine';
+                gainNode1.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                
+                oscillator1.start(audioContext.currentTime);
+                oscillator1.stop(audioContext.currentTime + 0.2);
+                
+                // Second tone (lower pitch) after a brief delay
+                setTimeout(() => {
+                    const oscillator2 = audioContext.createOscillator();
+                    const gainNode2 = audioContext.createGain();
+                    oscillator2.connect(gainNode2);
+                    gainNode2.connect(audioContext.destination);
+                    
+                    oscillator2.frequency.setValueAtTime(600, audioContext.currentTime);
+                    oscillator2.type = 'sine';
+                    gainNode2.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    
+                    oscillator2.start(audioContext.currentTime);
+                    oscillator2.stop(audioContext.currentTime + 0.3);
+                }, 250);
+
+                console.log('Enter sound (double-tone) played');
+            } catch (error) {
+                console.log('Could not play enter sound:', error);
+                // Fallback to audio element
+                try {
+                    enterSound.currentTime = 0;
+                    enterSound.play();
                 } catch (fallbackError) {
                     console.log('Fallback audio also failed:', fallbackError);
                 }
