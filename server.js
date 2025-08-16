@@ -206,13 +206,15 @@ io.on('connection', (socket) => {
 
         const availableRooms = [];
         
-        // Find available rooms (1-8) - only rooms that don't exist or are cleaned
+        // Find available rooms (1-8) - only rooms that don't exist
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
-            if (!room || room.status === 'cleaned') {
+            if (!room) {
+                // Room doesn't exist - it's available
                 availableRooms.push(i);
+                console.log(`Room ${i} is available (doesn't exist)`);
             } else {
-                console.log(`Room ${i} status: ${room.status}`);
+                console.log(`Room ${i} exists with status: ${room.status}`);
             }
         }
 
@@ -220,14 +222,18 @@ io.on('connection', (socket) => {
             const roomId = availableRooms[0];
             const participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
             
-            // Create room
-            chatRooms.set(roomId, {
+            // Create completely fresh room
+            const newRoom = {
                 id: roomId,
                 participant: { name: participantName },
                 messages: [],
                 status: 'active',
                 created: Date.now()
-            });
+            };
+            
+            chatRooms.set(roomId, newRoom);
+            console.log(`🆕 Created fresh room ${roomId} for ${participantName}`);
+            console.log(`🆕 Room messages count: ${newRoom.messages.length}`);
 
             // Store participant-room mapping
             participantRooms.set(participantName, roomId);
@@ -353,6 +359,9 @@ io.on('connection', (socket) => {
     
         activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
         socket.join(`room-${roomId}`);
+        console.log(`🔍 Join-room: Sending ${room.messages.length} messages to participant ${participantName}`);
+        console.log(`🔍 Join-room: Room messages:`, room.messages);
+        
         socket.emit('room-joined', { 
             roomId, 
             messages: room.messages, 
@@ -407,6 +416,9 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             
             if (room && room.status === 'left') {
+                console.log(`🧹 Cleaning room ${roomId} - deleting completely`);
+                console.log(`🧹 Room ${roomId} had ${room.messages.length} messages before deletion`);
+                
                 // Completely delete the room - fresh start
                 chatRooms.delete(roomId);
                 
@@ -414,11 +426,14 @@ io.on('connection', (socket) => {
                 for (const [participant, mappedRoomId] of participantRooms.entries()) {
                     if (mappedRoomId === roomId) {
                         participantRooms.delete(participant);
+                        console.log(`🧹 Removed participant mapping for ${participant}`);
                         break;
                     }
                 }
                 
                 saveData();
+                console.log(`🧹 Room ${roomId} completely deleted from chatRooms`);
+                console.log(`🧹 Current rooms after deletion:`, Array.from(chatRooms.keys()));
                 
                 // Notify admin that room is completely cleared
                 io.to('admin-room').emit('room-cleaned', { 
