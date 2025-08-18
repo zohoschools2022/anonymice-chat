@@ -467,7 +467,7 @@ io.on('connection', (socket) => {
                 // Send kick message to the participant
                 const kickMessage = {
                     id: Date.now(),
-                    text: "The admin is not able to continue this conversation any more. Bye for now!",
+                    text: "The admin is not able to continue this conversation any longer. Bye for now!",
                     sender: 'System',
                     timestamp: new Date().toISOString(),
                     isAdmin: false
@@ -485,7 +485,7 @@ io.on('connection', (socket) => {
                     participant: room.participant,
                     message: {
                         id: Date.now(),
-                        text: `Admin stopped the chat. Participant ${room.participant.name} has been kicked out.`,
+                        text: `This chat has now ended. ${room.participant.name} has been moved out of the room.`,
                         sender: 'System',
                         timestamp: new Date().toISOString(),
                         isAdmin: false

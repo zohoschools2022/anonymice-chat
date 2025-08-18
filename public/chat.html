@@ -480,7 +480,7 @@
             addMessage(message);
             
             // Check if this is a kick message from admin
-            if (message.sender === 'System' && message.text.includes("The admin is not able to continue this conversation any more")) {
+            if (message.sender === 'System' && message.text.includes("The admin is not able to continue this conversation any longer")) {
                 // Disable chat input and show kick notification
                 messageInput.disabled = true;
                 leaveRoomBtn.disabled = true;
