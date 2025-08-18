@@ -1531,41 +1531,7 @@
             }
         }
 
-        // Test function to manually update a room (for debugging)
-        function testUpdateRoom(roomId, participantName) {
-            console.log('🧪 Testing manual room update for room:', roomId, 'participant:', participantName);
-            const participantSpan = document.getElementById(`participant-${roomId}`);
-            const statusIndicator = document.getElementById(`status-${roomId}`);
-            
-            console.log('Found elements:', { participantSpan, statusIndicator });
-            
-            if (participantSpan) {
-                participantSpan.textContent = participantName;
-                participantSpan.style.color = '#48bb78';
-                console.log('✅ Manual update successful');
-            } else {
-                console.log('❌ Manual update failed - element not found');
-            }
-            
-            if (statusIndicator) {
-                statusIndicator.textContent = '●';
-                statusIndicator.className = 'status-indicator online';
-            }
-        }
 
-        // Test the first room manually after 3 seconds
-        setTimeout(() => {
-            console.log('🧪 Running manual test update...');
-            testUpdateRoom(1, 'TestUser');
-            
-            // Also test if DOM elements exist
-            console.log('🧪 Testing DOM elements...');
-            for (let i = 1; i <= 8; i++) {
-                const participantSpan = document.getElementById(`participant-${i}`);
-                const statusIndicator = document.getElementById(`status-${i}`);
-                console.log(`Room ${i}:`, { participantSpan: !!participantSpan, statusIndicator: !!statusIndicator });
-            }
-        }, 3000);
 
     </script>
 </body>
