@@ -453,6 +453,49 @@ io.on('connection', (socket) => {
             }
         }
     });
+
+    // Handle admin stop chat request
+    socket.on('stop-chat', (data) => {
+        const connection = activeConnections.get(socket.id);
+        if (connection && connection.type === 'admin') {
+            const roomId = data.roomId;
+            const room = chatRooms.get(roomId);
+            
+            if (room && room.status === 'active') {
+                console.log(`🚫 Admin stopping chat in room ${roomId}`);
+                
+                // Send kick message to the participant
+                const kickMessage = {
+                    id: Date.now(),
+                    text: "The admin is not able to continue this conversation any more. Bye for now!",
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false
+                };
+                
+                // Send the kick message to the participant
+                io.to(`room-${roomId}`).emit('new-message', kickMessage);
+                
+                // Update room status to 'left'
+                room.status = 'left';
+                
+                // Notify admin that participant has been kicked
+                io.to('admin-room').emit('participant-left', { 
+                    roomId, 
+                    participant: room.participant,
+                    message: {
+                        id: Date.now(),
+                        text: `Admin stopped the chat. Participant ${room.participant.name} has been kicked out.`,
+                        sender: 'System',
+                        timestamp: new Date().toISOString(),
+                        isAdmin: false
+                    }
+                });
+                
+                console.log(`Admin stopped chat in room ${roomId} - participant kicked out`);
+            }
+        }
+    });
     
 
     // Handle disconnection

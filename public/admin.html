@@ -399,6 +399,27 @@
             background: #047857;
         }
         
+        .stop-chat-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            margin-left: 5px;
+        }
+        
+        .stop-chat-btn:hover {
+            background: #c53030;
+        }
+        
+        .stop-chat-btn:active {
+            background: #a52a2a;
+        }
+        
         .system-message {
             text-align: center;
             color: #a0aec0;
@@ -514,6 +535,7 @@
                     <span class="status-indicator" id="status-1">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-1" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-1" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-1">
                 <div class="system-message">No participant yet</div>
@@ -549,6 +571,7 @@
                     <span class="status-indicator" id="status-2">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-2" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-2" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-2">
                 <div class="system-message">No participant yet</div>
@@ -584,6 +607,7 @@
                     <span class="status-indicator" id="status-3">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-3" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-3" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-3">
                 <div class="system-message">No participant yet</div>
@@ -619,6 +643,7 @@
                     <span class="status-indicator" id="status-4">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-4" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-4" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-4">
                 <div class="system-message">No participant yet</div>
@@ -654,6 +679,7 @@
                     <span class="status-indicator" id="status-5">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-5" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-5" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-5">
                 <div class="system-message">No participant yet</div>
@@ -689,6 +715,7 @@
                     <span class="status-indicator" id="status-6">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-6" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-6" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-6">
                 <div class="system-message">No participant yet</div>
@@ -724,6 +751,7 @@
                     <span class="status-indicator" id="status-7">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-7" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-7" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-7">
                 <div class="system-message">No participant yet</div>
@@ -759,6 +787,7 @@
                     <span class="status-indicator" id="status-8">○</span>
                 </div>
                 <button class="cleanup-btn" id="cleanup-8" style="display: none;">🧹 Clean</button>
+                <button class="stop-chat-btn" id="stop-chat-8" style="display: none;">🚫 Stop Chatting</button>
             </div>
             <div class="chat-messages" id="messages-8">
                 <div class="system-message">No participant yet</div>
@@ -1171,11 +1200,23 @@
                         // Copy chat transcript to clipboard before cleaning
                         copyChatTranscriptToClipboard(roomId);
                         
-                        // Send cleanup request to server
+                                                // Send cleanup request to server
                         socket.emit('cleanup-room', { roomId });
                         cleanupBtn.style.display = 'none';
                     }
                 });
+                
+                // Setup stop chat button handler
+                const stopChatBtn = document.getElementById(`stop-chat-${roomId}`);
+                if (stopChatBtn) {
+                    stopChatBtn.addEventListener('click', () => {
+                        if (confirm(`Are you sure you want to stop chatting with the participant in Room ${roomId}?`)) {
+                            // Send stop chat request to server
+                            socket.emit('stop-chat', { roomId });
+                            stopChatBtn.style.display = 'none';
+                        }
+                    });
+                }
             }
         }
 
@@ -1350,6 +1391,7 @@
             const participantSpan = document.getElementById(`participant-${roomId}`);
             const statusIndicator = document.getElementById(`status-${roomId}`);
             const cleanupBtn = document.getElementById(`cleanup-${roomId}`);
+            const stopChatBtn = document.getElementById(`stop-chat-${roomId}`);
             
             console.log(`Updating room ${roomId} status to: ${status}`);
             
@@ -1360,6 +1402,9 @@
                 }
                 if (cleanupBtn) {
                     cleanupBtn.style.display = 'none';
+                }
+                if (stopChatBtn) {
+                    stopChatBtn.style.display = 'inline-block';
                 }
             } else if (status === 'left') {
                 if (participantSpan) {
@@ -1373,6 +1418,9 @@
                 if (cleanupBtn) {
                     cleanupBtn.style.display = 'inline-block';
                 }
+                if (stopChatBtn) {
+                    stopChatBtn.style.display = 'none';
+                }
             } else if (status === 'cleaned') {
                 if (participantSpan) {
                     participantSpan.textContent = 'Ready';
@@ -1384,6 +1432,9 @@
                 }
                 if (cleanupBtn) {
                     cleanupBtn.style.display = 'none';
+                }
+                if (stopChatBtn) {
+                    stopChatBtn.style.display = 'none';
                 }
             }
         }

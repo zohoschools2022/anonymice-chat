@@ -478,6 +478,22 @@
     
         socket.on('new-message', (message) => {
             addMessage(message);
+            
+            // Check if this is a kick message from admin
+            if (message.sender === 'System' && message.text.includes("The admin is not able to continue this conversation any more")) {
+                // Disable chat input and show kick notification
+                messageInput.disabled = true;
+                leaveRoomBtn.disabled = true;
+                addSystemMessage('Chat has been ended by the admin. You can no longer send messages.');
+                
+                // Change the status indicator to show kicked out
+                const statusIndicator = document.querySelector('.status-indicator');
+                if (statusIndicator) {
+                    statusIndicator.textContent = '🚫';
+                    statusIndicator.style.color = '#ef4444';
+                    statusIndicator.title = 'Kicked out by admin';
+                }
+            }
         });
     
         socket.on('disconnect', () => {
