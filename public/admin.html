@@ -954,8 +954,8 @@
             // Highlight tile to notify admin that participant left
             updateTileState(data.roomId, 'participant-left');
             
-            // Play ping sound for participant leaving
-            playPingSound();
+            // Play exit sound for participant leaving
+            playExitSound();
         });
 
         // Room cleaned
@@ -1521,6 +1521,47 @@
                 console.log('Enter sound (double-tone) played');
             } catch (error) {
                 console.log('Could not play enter sound:', error);
+                // Fallback to audio element
+                try {
+                    enterSound.currentTime = 0;
+                    enterSound.play();
+                } catch (fallbackError) {
+                    console.log('Fallback audio also failed:', fallbackError);
+                }
+            }
+        }
+
+        function playExitSound() {
+            // Only play sound if page is not visible or not focused
+            if (isPageVisible && isPageFocused) {
+                console.log('Audio muted - admin page is active and focused');
+                return;
+            }
+
+            try {
+                // Create Web Audio API context for exit sound (descending tone)
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Create a descending tone pattern (like a "goodbye" sound)
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Start high and descend
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.4);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.4);
+
+                console.log('Exit sound (descending tone) played');
+            } catch (error) {
+                console.log('Could not play exit sound:', error);
                 // Fallback to audio element
                 try {
                     enterSound.currentTime = 0;
