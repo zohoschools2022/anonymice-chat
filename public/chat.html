@@ -322,10 +322,14 @@
                     statusIndicator.textContent = '●';
                     statusIndicator.className = 'status-indicator online';
                     statusIndicator.title = 'Admin is online';
+                    // Play active sound when admin comes back
+                    playActiveSound();
                 } else {
                     statusIndicator.textContent = '●';
                     statusIndicator.className = 'status-indicator away';
                     statusIndicator.title = 'Admin is away';
+                    // Play away sound when admin goes away
+                    playAwaySound();
                 }
             }
         }
@@ -479,6 +483,11 @@
         socket.on('new-message', (message) => {
             addMessage(message);
             
+            // Play sound for admin messages
+            if (message.isAdmin && message.sender !== 'System') {
+                playMessageSound();
+            }
+            
             // Check if this is a kick message from admin
             if (message.sender === 'System' && message.text.includes("The admin is not able to continue this conversation any longer")) {
                 // Disable chat input and show kick notification
@@ -601,7 +610,82 @@
                 messageInput.disabled = true;
             }
         });
-    
+
+        // Sound functions for user chat
+        function playMessageSound() {
+            try {
+                // Create Web Audio API context for message sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
+
+                console.log('Message sound played (user chat)');
+            } catch (error) {
+                console.log('Could not play message sound:', error);
+            }
+        }
+
+        function playAwaySound() {
+            try {
+                // Create Web Audio API context for away sound (lower tone)
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+
+                console.log('Away sound played (user chat)');
+            } catch (error) {
+                console.log('Could not play away sound:', error);
+            }
+        }
+
+        function playActiveSound() {
+            try {
+                // Create Web Audio API context for active sound (higher tone)
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.25);
+
+                console.log('Active sound played (user chat)');
+            } catch (error) {
+                console.log('Could not play active sound:', error);
+            }
+        }
 
     </script>
 </body>
