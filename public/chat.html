@@ -622,7 +622,7 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
-                oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(350, audioContext.currentTime);
                 oscillator.type = 'sine';
 
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
@@ -639,7 +639,7 @@
 
         function playAwaySound() {
             try {
-                // Create Web Audio API context for away sound (lower tone)
+                // Create Web Audio API context for away sound (negative descending tone)
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -647,7 +647,9 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
+                // Start high and descend (negative feeling)
                 oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
                 oscillator.type = 'sine';
 
                 gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
@@ -664,7 +666,7 @@
 
         function playActiveSound() {
             try {
-                // Create Web Audio API context for active sound (higher tone)
+                // Create Web Audio API context for active sound (positive ascending tone)
                 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 const oscillator = audioContext.createOscillator();
                 const gainNode = audioContext.createGain();
@@ -672,7 +674,9 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
-                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                // Start low and ascend (positive feeling)
+                oscillator.frequency.setValueAtTime(250, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(450, audioContext.currentTime + 0.25);
                 oscillator.type = 'sine';
 
                 gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
