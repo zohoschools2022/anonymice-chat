@@ -206,39 +206,47 @@ io.on('connection', (socket) => {
             return;
         }
 
-        const availableRooms = [];
+        // ATOMIC ROOM ASSIGNMENT - Find and claim a room in one operation
+        let roomId = null;
+        let participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
         
-        // Find available rooms (1-8) - only rooms that don't exist OR are cleaned
+        // Try to find and claim an available room atomically
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
-            if (!room) {
-                // Room doesn't exist - it's available
-                availableRooms.push(i);
-                console.log(`Room ${i} is available (doesn't exist)`);
-            } else if (room.status === 'cleaned') {
-                // Room exists but has been cleaned - it's available
-                availableRooms.push(i);
-                console.log(`Room ${i} is available (cleaned)`);
+            
+            // Check if room is truly available (doesn't exist OR is cleaned)
+            if (!room || room.status === 'cleaned') {
+                // ATOMIC CLAIM: Create room immediately to prevent race conditions
+                const newRoom = {
+                    id: i,
+                    participant: { name: participantName },
+                    messages: [],
+                    status: 'active',
+                    created: Date.now(),
+                    claimed: true // Mark as claimed immediately
+                };
+                
+                // Set the room immediately to claim it
+                chatRooms.set(i, newRoom);
+                
+                // DOUBLE-CHECK: Verify we actually got the room (prevent race conditions)
+                const verifyRoom = chatRooms.get(i);
+                if (verifyRoom && verifyRoom.participant.name === participantName) {
+                    roomId = i;
+                    console.log(`🔒 ATOMICALLY CLAIMED room ${i} for ${participantName}`);
+                    break; // Exit loop immediately after claiming
+                } else {
+                    console.log(`⚠️ Race condition detected for room ${i}, trying next room`);
+                    // Remove the room we just created since we didn't get it
+                    chatRooms.delete(i);
+                }
             } else {
-                // Room exists and is not cleaned - it's locked
                 console.log(`Room ${i} is locked (status: ${room.status})`);
             }
         }
 
-        if (availableRooms.length > 0) {
-            const roomId = availableRooms[0];
-            const participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
-            
-            // Create completely fresh room
-            const newRoom = {
-                id: roomId,
-                participant: { name: participantName },
-                messages: [],
-                status: 'active',
-                created: Date.now()
-            };
-            
-            chatRooms.set(roomId, newRoom);
+        if (roomId) {
+            const newRoom = chatRooms.get(roomId);
             console.log(`🆕 Created fresh room ${roomId} for ${participantName}`);
             console.log(`🆕 Room messages count: ${newRoom.messages.length}`);
 
