@@ -524,8 +524,8 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Anonymice server running on port ${PORT}`);
-    console.log(`🔐 ADMIN URL: https://anonymice-production.up.railway.app/admin/${ADMIN_URL}`);
-    console.log(`🚪 Knock URL: https://anonymice-production.up.railway.app/knock`);
+    console.log(`🔐 ADMIN URL: https://web-production-8d6b4.up.railway.app/admin/${ADMIN_URL}`);
+    console.log(`🚪 Knock URL: https://web-production-8d6b4.up.railway.app/knock`);
     console.log('='.repeat(80));
 });
 
