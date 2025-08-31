@@ -208,15 +208,20 @@ io.on('connection', (socket) => {
 
         const availableRooms = [];
         
-        // Find available rooms (1-8) - only rooms that don't exist
+        // Find available rooms (1-8) - only rooms that don't exist OR are cleaned
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
             if (!room) {
                 // Room doesn't exist - it's available
                 availableRooms.push(i);
                 console.log(`Room ${i} is available (doesn't exist)`);
+            } else if (room.status === 'cleaned') {
+                // Room exists but has been cleaned - it's available
+                availableRooms.push(i);
+                console.log(`Room ${i} is available (cleaned)`);
             } else {
-                console.log(`Room ${i} exists with status: ${room.status}`);
+                // Room exists and is not cleaned - it's locked
+                console.log(`Room ${i} is locked (status: ${room.status})`);
             }
         }
 

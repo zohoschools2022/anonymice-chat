@@ -319,17 +319,13 @@
         function updateAdminStatusIndicator(isActive) {
             if (statusIndicator) {
                 if (isActive) {
-                    statusIndicator.textContent = '●';
+                    statusIndicator.textContent = '🟢';
                     statusIndicator.className = 'status-indicator online';
                     statusIndicator.title = 'Admin is online';
-                    // Play active sound when admin comes back
-                    playActiveSound();
                 } else {
-                    statusIndicator.textContent = '●';
+                    statusIndicator.textContent = '🟡';
                     statusIndicator.className = 'status-indicator away';
                     statusIndicator.title = 'Admin is away';
-                    // Play away sound when admin goes away
-                    playAwaySound();
                 }
             }
         }
@@ -637,59 +633,7 @@
             }
         }
 
-        function playAwaySound() {
-            try {
-                // Create Web Audio API context for away sound (negative descending tone)
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                // Start high and descend (negative feeling)
-                oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
-                oscillator.type = 'sine';
-
-                gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.3);
-
-                console.log('Away sound played (user chat)');
-            } catch (error) {
-                console.log('Could not play away sound:', error);
-            }
-        }
-
-        function playActiveSound() {
-            try {
-                // Create Web Audio API context for active sound (positive ascending tone)
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                // Start low and ascend (positive feeling)
-                oscillator.frequency.setValueAtTime(250, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(450, audioContext.currentTime + 0.25);
-                oscillator.type = 'sine';
-
-                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.25);
-
-                console.log('Active sound played (user chat)');
-            } catch (error) {
-                console.log('Could not play active sound:', error);
-            }
-        }
 
     </script>
 </body>
