@@ -517,11 +517,33 @@ io.on('connection', (socket) => {
         if (connection) {
             if (connection.type === 'participant') {
                 const roomId = connection.roomId;
-                chatRooms.delete(roomId);
-                participantRooms.delete(connection.name);
-                // saveData(); // Temporarily disabled
-                io.to('admin-room').emit('participant-left', { roomId, participant: connection });
-                console.log(`Participant ${connection.name} left room ${roomId}`);
+                const room = chatRooms.get(roomId);
+                
+                if (room && room.status === 'active') {
+                    // Mark room as "left" instead of deleting it
+                    room.status = 'left';
+                    room.leftAt = Date.now();
+                    
+                    // Add leave message to room
+                    const leaveMessage = {
+                        id: Date.now(),
+                        text: `${connection.name} has left the chat room.`,
+                        sender: 'System',
+                        timestamp: new Date().toISOString(),
+                        isAdmin: false
+                    };
+                    
+                    room.messages.push(leaveMessage);
+                    
+                    // Notify admin that participant left (so admin can see transcript and clean)
+                    io.to('admin-room').emit('participant-left', { 
+                        roomId, 
+                        participant: connection,
+                        message: leaveMessage
+                    });
+                    
+                    console.log(`Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);
+                }
             }
             activeConnections.delete(socket.id);
         }
