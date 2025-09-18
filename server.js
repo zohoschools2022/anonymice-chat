@@ -513,11 +513,17 @@ io.on('connection', (socket) => {
 
     // Handle disconnection
     socket.on('disconnect', () => {
+        console.log('🔌 DISCONNECT EVENT TRIGGERED for socket:', socket.id);
         const connection = activeConnections.get(socket.id);
+        console.log('🔌 Connection found:', connection);
+        
         if (connection) {
             if (connection.type === 'participant') {
                 const roomId = connection.roomId;
                 const room = chatRooms.get(roomId);
+                console.log(`🔌 Participant ${connection.name} disconnecting from room ${roomId}`);
+                console.log(`🔌 Room exists:`, !!room);
+                console.log(`🔌 Room status:`, room ? room.status : 'N/A');
                 
                 if (room && room.status === 'active') {
                     // Mark room as "left" instead of deleting it
@@ -536,18 +542,23 @@ io.on('connection', (socket) => {
                     room.messages.push(leaveMessage);
                     
                     // Notify admin that participant left (so admin can see transcript and clean)
+                    console.log(`🔌 EMITTING participant-left event for room ${roomId}`);
                     io.to('admin-room').emit('participant-left', { 
                         roomId, 
                         participant: connection,
                         message: leaveMessage
                     });
                     
-                    console.log(`Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);
+                    console.log(`✅ Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);
+                } else {
+                    console.log(`⚠️ Room ${roomId} not found or not active, skipping participant-left event`);
                 }
             }
             activeConnections.delete(socket.id);
+        } else {
+            console.log('⚠️ No connection found for disconnecting socket');
         }
-        console.log('Client disconnected:', socket.id);
+        console.log('🔌 Client disconnected:', socket.id);
     });
 });
 

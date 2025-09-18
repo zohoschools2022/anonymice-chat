@@ -947,7 +947,11 @@
 
         // Participant left room
         socket.on('participant-left', (data) => {
-            console.log('Participant left:', data);
+            console.log('🔌 ADMIN RECEIVED participant-left event:', data);
+            console.log('🔌 Room ID:', data.roomId);
+            console.log('🔌 Participant:', data.participant);
+            console.log('🔌 Message:', data.message);
+            
             addMessageToWindow(data.roomId, data.message);
             updateRoomStatus(data.roomId, 'left');
             
@@ -956,6 +960,8 @@
             
             // Play exit sound for participant leaving
             playExitSound();
+            
+            console.log('🔌 Admin processing complete for participant-left event');
         });
 
         // Room cleaned
@@ -1393,7 +1399,13 @@
             const cleanupBtn = document.getElementById(`cleanup-${roomId}`);
             const stopChatBtn = document.getElementById(`stop-chat-${roomId}`);
             
-            console.log(`Updating room ${roomId} status to: ${status}`);
+            console.log(`🔌 updateRoomStatus called for room ${roomId} with status: ${status}`);
+            console.log(`🔌 Elements found:`, {
+                participantSpan: !!participantSpan,
+                statusIndicator: !!statusIndicator,
+                cleanupBtn: !!cleanupBtn,
+                stopChatBtn: !!stopChatBtn
+            });
             
             if (status === 'active') {
                 if (statusIndicator) {
@@ -1407,19 +1419,26 @@
                     stopChatBtn.style.display = 'inline-block';
                 }
             } else if (status === 'left') {
+                console.log(`🔌 Setting room ${roomId} to LEFT status`);
                 if (participantSpan) {
                     participantSpan.textContent = 'Left';
                     participantSpan.style.color = '#ef4444';
+                    console.log(`🔌 Updated participant span for room ${roomId}`);
                 }
                 if (statusIndicator) {
                     statusIndicator.textContent = '○';
                     statusIndicator.className = 'status-indicator';
+                    console.log(`🔌 Updated status indicator for room ${roomId}`);
                 }
                 if (cleanupBtn) {
                     cleanupBtn.style.display = 'inline-block';
+                    console.log(`🔌 SHOWING cleanup button for room ${roomId}`);
+                } else {
+                    console.log(`🔌 ❌ CLEANUP BUTTON NOT FOUND for room ${roomId}`);
                 }
                 if (stopChatBtn) {
                     stopChatBtn.style.display = 'none';
+                    console.log(`🔌 Hiding stop chat button for room ${roomId}`);
                 }
             } else if (status === 'cleaned') {
                 if (participantSpan) {
