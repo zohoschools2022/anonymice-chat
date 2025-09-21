@@ -20,15 +20,19 @@ function handleTelegramMessage(message) {
         console.log('📱 This is a reply to message ID:', replyToMessageId);
         
         // Find context by reply message ID
+        console.log('📱 Searching pending knocks for reply message ID:', replyToMessageId);
         for (let [roomId, context] of pendingKnocks) {
+            console.log('📱 Checking pending knock context:', context.replyMessageId, 'vs', replyToMessageId);
             if (context.replyMessageId === replyToMessageId) {
-                console.log('📱 Found context for reply:', context);
+                console.log('📱 Found knock context for reply:', context);
                 return handleKnockResponse(text, context);
             }
         }
         
         // Check active message contexts
+        console.log('📱 Searching active message contexts for reply message ID:', replyToMessageId);
         for (let [id, context] of activeRoomContexts) {
+            console.log('📱 Checking message context:', context.replyMessageId, 'vs', replyToMessageId);
             if (context.replyMessageId === replyToMessageId) {
                 console.log('📱 Found message context for reply:', context);
                 return handleMessageResponse(text, context);
