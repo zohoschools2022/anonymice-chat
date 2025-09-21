@@ -111,6 +111,16 @@ app.get('/knock', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'knock.html'));
 });
 
+// Debug endpoint to check environment variables
+app.get('/debug-env', (req, res) => {
+    res.json({
+        telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Missing',
+        telegram_chat_id: process.env.TELEGRAM_CHAT_ID ? 'Set' : 'Missing',
+        bot_token_preview: process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) + '...' : 'Not set',
+        chat_id_value: process.env.TELEGRAM_CHAT_ID || 'Not set'
+    });
+});
+
 // Telegram webhook endpoint
 app.post('/telegram-webhook', express.json(), (req, res) => {
     try {
