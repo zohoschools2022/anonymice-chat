@@ -278,7 +278,7 @@ app.get('/debug-env', (req, res) => {
 });
 
 // Telegram webhook endpoint for all conversations (unlimited)
-app.post('/telegram-webhook', express.json({ limit: '10kb' }), (req, res) => {
+app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) => {
     const clientIP = getClientIP(req);
     
     // Validate webhook request
