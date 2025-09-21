@@ -40,17 +40,25 @@ function handleTelegramMessage(message) {
         }
     }
     
-    // If not a reply, we need explicit context
-    console.log('📱 No reply context found - user must reply to specific message');
-    return {
-        success: false,
-        message: 'Please reply to the specific knock notification you want to respond to. Use the "Reply" button in Telegram on the notification message.'
-    };
+    // If not a reply, try to find the most recent message context as fallback
+    if (activeRoomContexts.size > 0) {
+        const mostRecentMessage = Array.from(activeRoomContexts.values()).pop();
+        console.log('📱 Using most recent message context as fallback:', mostRecentMessage);
+        return handleMessageResponse(text, mostRecentMessage);
+    }
     
-    // Default response
+    // If no message context, try most recent knock context
+    if (pendingKnocks.size > 0) {
+        const mostRecentKnock = Array.from(pendingKnocks.values()).pop();
+        console.log('📱 Using most recent knock context as fallback:', mostRecentKnock);
+        return handleKnockResponse(text, mostRecentKnock);
+    }
+    
+    // If no context at all, return error
+    console.log('📱 No context found - user must reply to specific message');
     return {
         success: false,
-        message: 'No active context found. Please wait for a notification or reply to a specific message.'
+        message: 'Please reply to the specific notification you want to respond to. Use the "Reply" button in Telegram on the notification message.'
     };
 }
 
@@ -119,10 +127,12 @@ function setActiveRoomContext(context) {
     if (context.type === 'knock') {
         pendingKnocks.set(context.roomId, context);
         console.log('📱 Knock context set for room:', context.roomId);
+        console.log('📱 Reply message ID stored:', context.replyMessageId);
         console.log('📱 Context details:', JSON.stringify(context, null, 2));
     } else if (context.type === 'message') {
         activeRoomContexts.set(context.roomId, context);
         console.log('📱 Message context set for room:', context.roomId);
+        console.log('📱 Reply message ID stored:', context.replyMessageId);
         console.log('📱 Context details:', JSON.stringify(context, null, 2));
     }
 }
