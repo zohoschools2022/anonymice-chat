@@ -320,6 +320,46 @@
             width: 100%;
         }
         
+        /* Admin Shortcuts */
+        .admin-shortcuts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .shortcut-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .shortcut-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .shortcut-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
         .input-row {
             display: flex;
             align-items: flex-end;
@@ -552,6 +592,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(1, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(1, '🙏')">🙏</button>
                 </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -587,6 +644,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(2, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(2, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(2, '🙏')">🙏</button>
+                </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(2, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(2, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(2, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(2, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(2, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
                 </div>
                 <div class="input-wrapper">
                     <div class="input-row">
@@ -624,6 +698,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(3, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(3, '🙏')">🙏</button>
                 </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(3, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(3, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(3, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(3, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(3, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -659,6 +750,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(4, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(4, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(4, '🙏')">🙏</button>
+                </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(4, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(4, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(4, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(4, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(4, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
                 </div>
                 <div class="input-wrapper">
                     <div class="input-row">
@@ -696,6 +804,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(5, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(5, '🙏')">🙏</button>
                 </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(5, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(5, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(5, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(5, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(5, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -731,6 +856,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(6, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(6, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(6, '🙏')">🙏</button>
+                </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(6, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(6, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(6, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(6, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(6, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
                 </div>
                 <div class="input-wrapper">
                     <div class="input-row">
@@ -768,6 +910,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(7, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(7, '🙏')">🙏</button>
                 </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(7, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(7, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(7, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(7, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(7, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
+                </div>
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
@@ -803,6 +962,23 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(8, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(8, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(8, '🙏')">🙏</button>
+                </div>
+                <div class="admin-shortcuts">
+                    <button class="shortcut-btn" onclick="insertShortcut(8, 'Hello Mouse! Welcome! What are we talking about today?')">
+                        🐭 Welcome
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(8, 'Your connectivity seems spotty. Want to try later?')">
+                        📶 Connectivity
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(8, 'Are you still around?')">
+                        👋 Still Here?
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(8, 'Are you from Zoho Schools or from Jambav?')">
+                        🏫 School Check
+                    </button>
+                    <button class="shortcut-btn" onclick="insertShortcut(8, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                        🤔 Rephrase
+                    </button>
                 </div>
                 <div class="input-wrapper">
                     <div class="input-row">
@@ -1196,6 +1372,21 @@
             textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
             textarea.focus();
             autoResize(textarea);
+        }
+        
+        function insertShortcut(roomId, message) {
+            const textarea = document.getElementById(`input-${roomId}`);
+            textarea.value = message;
+            textarea.focus();
+            autoResize(textarea);
+            
+            // Add a subtle visual feedback
+            const shortcutBtn = event.target;
+            const originalBg = shortcutBtn.style.background;
+            shortcutBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            setTimeout(() => {
+                shortcutBtn.style.background = originalBg;
+            }, 200);
         }
 
         function setupCleanupButton(roomId) {
