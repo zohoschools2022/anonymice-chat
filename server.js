@@ -72,7 +72,7 @@ function approveUserForRoom(roomId, botInfo) {
     
     // Activate the room
     room.status = 'active';
-    serviceEnabled = true;
+    // Don't enable service globally - keep it disabled for new knocks
     
     // Set up user connection
     const participantName = room.participant.name;
@@ -159,6 +159,9 @@ function sendMessageToUser(roomId, message, botInfo) {
     
     // Send to user in the room
     io.to(`room-${roomId}`).emit('new-message', adminMessage);
+    
+    // Also notify admin interface
+    io.to('admin-room').emit('admin-message', { roomId, message: adminMessage });
     
     console.log(`📤 Admin message sent to Room ${roomId} via bot @${botInfo.botUsername}: ${message}`);
 }
@@ -328,8 +331,7 @@ app.post('/telegram-webhook', express.json(), (req, res) => {
                             // Activate the room
                             room.status = 'active';
                             
-                            // Enable service for this session
-                            serviceEnabled = true;
+                            // Don't enable service globally - keep it disabled for new knocks
                             
                             // Set up user connection properly
                             const participantName = response.participantName;

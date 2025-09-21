@@ -6,13 +6,18 @@ const activeBots = new Map(); // Map of roomId -> bot info
 const availableBots = new Map(); // Map of botId -> bot info
 const usedBots = new Set(); // Set of bot IDs currently in use
 
-// Bot pool - you can add more bot tokens here
+// Bot pool - using the same bot for all conversations but with different webhook endpoints
 const BOT_POOL = [
     { id: 1, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    // Add more bots here as needed
-    // { id: 2, token: 'BOT_TOKEN_2', username: 'AnonymiceBot2' },
-    // { id: 3, token: 'BOT_TOKEN_3', username: 'AnonymiceBot3' },
-    // ... up to 10 or more bots
+    { id: 2, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 3, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 4, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 5, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 6, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 7, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 8, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 9, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    { id: 10, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' }
 ];
 
 // Initialize bot pool
