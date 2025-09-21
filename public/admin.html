@@ -414,6 +414,52 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
+        /* Header Shortcuts */
+        .header-shortcuts {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0 0 15px 15px;
+        }
+        
+        .shortcuts-label {
+            color: #e2e8f0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        
+        .header-shortcut-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            min-width: 32px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .header-shortcut-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .header-shortcut-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
         .input-row {
             display: flex;
             align-items: flex-end;
@@ -603,7 +649,7 @@
                 <div class="admin-header-left">
                     <span class="admin-title">🐭 Admin Dashboard</span>
                     <span class="admin-subtitle">Managing 8 concurrent chat sessions</span>
-                </div> -->
+                </div>
                 <div class="admin-header-right">
                     <span class="admin-info">Admin: Rajendran D</span>
                     <span class="admin-info" id="activeRooms">Active Rooms: 0</span>
@@ -614,32 +660,31 @@
                             <span class="slider"></span>
                         </label>
                         <span class="switch-label" id="switchLabel">Service: OFF</span>
-                    </div> -->
-                </div> -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Compact Shortcuts in Header -->
+            <div class="header-shortcuts">
+                <span class="shortcuts-label">⚡ Quick:</span>
+                <button class="header-shortcut-btn" onclick="insertCentralShortcut('Hello Mouse! Welcome! What are we talking about today?')" title="Welcome message">
+                    🐭
+                </button>
+                <button class="header-shortcut-btn" onclick="insertCentralShortcut('Your connectivity seems spotty. Want to try later?')" title="Connectivity check">
+                    📶
+                </button>
+                <button class="header-shortcut-btn" onclick="insertCentralShortcut('Are you still around?')" title="Still here?">
+                    👋
+                </button>
+                <button class="header-shortcut-btn" onclick="insertCentralShortcut('Are you from Zoho Schools or from Jambav?')" title="School check">
+                    🏫
+                </button>
+                <button class="header-shortcut-btn" onclick="insertCentralShortcut('Do you want to rephrase? I don\'t think I understand what you have written above.')" title="Rephrase request">
+                    🤔
+                </button>
             </div>
         </div>
 
-        <!-- Central Admin Shortcuts Panel -->
-        <div class="central-shortcuts">
-            <div class="central-shortcuts-title">⚡ Quick Messages - Click on a chat window first, then click shortcut</div>
-            <div class="central-shortcuts-grid">
-                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Hello Mouse! Welcome! What are we talking about today?')">
-                    🐭 Welcome
-                </button>
-                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Your connectivity seems spotty. Want to try later?')">
-                    📶 Connectivity
-                </button>
-                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Are you still around?')">
-                    👋 Still Here?
-                </button>
-                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Are you from Zoho Schools or from Jambav?')">
-                    🏫 School Check
-                </button>
-                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Do you want to rephrase? I don\'t think I understand what you have written above.')">
-                    🤔 Rephrase
-                </button>
-            </div>
-        </div>
 
     <div class="chat-grid">
         <!-- Room 1 -->
