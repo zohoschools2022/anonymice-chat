@@ -277,9 +277,8 @@ app.get('/debug-env', (req, res) => {
     });
 });
 
-// Telegram webhook endpoint for dynamic bots
-app.post('/telegram-webhook/:roomId', express.json({ limit: '10kb' }), (req, res) => {
-    const roomId = parseInt(req.params.roomId);
+// Telegram webhook endpoint for all conversations (unlimited)
+app.post('/telegram-webhook', express.json({ limit: '10kb' }), (req, res) => {
     const clientIP = getClientIP(req);
     
     // Validate webhook request
@@ -297,129 +296,14 @@ app.post('/telegram-webhook/:roomId', express.json({ limit: '10kb' }), (req, res
     }
     
     const message = req.body.message;
-    console.log(`📱 Received message for Room ${roomId} from ${clientIP}:`, message.text);
+    console.log(`📱 Received message from ${clientIP}:`, message.text);
     
-    // Handle the message using the bot factory
-    handleDynamicBotMessage(roomId, message);
+    // Handle the message using conversation tracking
+    const response = handleTelegramMessage(message);
     
-    res.status(200).send('OK');
+    res.status(200).json(response);
 });
 
-// Telegram webhook endpoint (fallback for main bot)
-app.post('/telegram-webhook', express.json(), (req, res) => {
-    try {
-        const message = req.body.message;
-        if (!message || !message.text) {
-            return res.status(200).send('OK');
-        }
-        
-        console.log('📱 Received Telegram message:', message.text);
-        
-        // Handle the Telegram message
-        const response = handleTelegramMessage(message);
-        
-        if (response.success) {
-            // Process the response based on action
-            switch (response.action) {
-                case 'approve':
-                    // Approve the knock
-                    if (response.socketId) {
-                        const socket = io.sockets.sockets.get(response.socketId);
-                        const room = chatRooms.get(response.roomId);
-                        
-                        if (socket && room) {
-                            // Activate the room
-                            room.status = 'active';
-                            
-                            // Don't enable service globally - keep it disabled for new knocks
-                            
-                            // Set up user connection properly
-                            const participantName = response.participantName;
-                            participantRooms.set(participantName, response.roomId);
-                            
-                            // Join the room
-                            socket.join(`room-${response.roomId}`);
-                            
-                            // Store connection
-                            activeConnections.set(socket.id, {
-                                type: 'participant',
-                                name: participantName,
-                                roomId: response.roomId
-                            });
-                            
-                            // Add welcome message
-                            const welcomeMessage = {
-                                id: Date.now(),
-                                text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
-                                sender: 'System',
-                                timestamp: new Date().toISOString(),
-                                isAdmin: false
-                            };
-                            room.messages.push(welcomeMessage);
-                            
-                            // Notify admin
-                            const adminEvent = {
-                                roomId: response.roomId,
-                                participant: { name: participantName }
-                            };
-                            io.to('admin-room').emit('new-participant', adminEvent);
-                            
-                            // Send approval to user
-                            socket.emit('knock-approved', { roomId: response.roomId });
-                            
-                            console.log(`✅ Approved knock for ${participantName} in Room ${response.roomId} - room activated and service enabled`);
-                        }
-                    }
-                    break;
-                    
-                case 'reject':
-                case 'away':
-                case 'custom':
-                    // Reject the knock with message
-                    if (response.socketId) {
-                        const socket = io.sockets.sockets.get(response.socketId);
-                        if (socket) {
-                            socket.emit('knock-rejected', { 
-                                message: response.message,
-                                roomId: response.roomId 
-                            });
-                            console.log(`❌ Rejected knock for ${response.participantName}: ${response.message}`);
-                        }
-                    }
-                    break;
-                    
-                case 'reply':
-                    // Send admin response to user
-                    const room = chatRooms.get(response.roomId);
-                    if (room) {
-                        const adminMessage = {
-                            id: Date.now(),
-                            text: response.message,
-                            sender: ADMIN_NAME,
-                            timestamp: new Date().toISOString(),
-                            isAdmin: true
-                        };
-                        
-                        room.messages.push(adminMessage);
-                        
-                        // Send to user in the room
-                        io.to(`room-${response.roomId}`).emit('new-message', adminMessage);
-                        
-                        console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
-                    }
-                    break;
-            }
-            
-            // Clear the active context
-            clearActiveRoomContext();
-        }
-        
-        res.status(200).send('OK');
-    } catch (error) {
-        console.error('❌ Telegram webhook error:', error);
-        res.status(500).send('Error');
-    }
-});
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -584,7 +468,7 @@ io.on('connection', (socket) => {
                 const knockMessage = `🔔 <b>Someone Knocked!</b>\n\n` +
                                    `👤 <b>Name:</b> ${participantName}\n` +
                                    `🏠 <b>Room:</b> ${roomId}\n` +
-                                   `🤖 <b>Bot:</b> @${botInfo.botUsername}\n` +
+                                   `💬 <b>Conversation:</b> #${botInfo.conversationNumber}\n` +
                                    `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
                                    `Reply with:\n` +
                                    `• <code>approve</code> - Let them in\n` +

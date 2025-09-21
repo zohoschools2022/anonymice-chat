@@ -1,69 +1,41 @@
-// Dynamic Bot Factory - Manages Telegram bots for conversations
+// Dynamic Bot Factory - Manages unlimited conversations with one bot
 const axios = require('axios');
 
-// Store active bots
-const activeBots = new Map(); // Map of roomId -> bot info
-const availableBots = new Map(); // Map of botId -> bot info
-const usedBots = new Set(); // Set of bot IDs currently in use
+// Store active conversations
+const activeConversations = new Map(); // Map of roomId -> conversation info
+let conversationCounter = 0; // Track conversation numbers
 
-// Bot pool - using the same bot for all conversations but with different webhook endpoints
-const BOT_POOL = [
-    { id: 1, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 2, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 3, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 4, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 5, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 6, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 7, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 8, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 9, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
-    { id: 10, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' }
-];
+// Single bot for all conversations
+const MAIN_BOT = {
+    token: process.env.TELEGRAM_BOT_TOKEN,
+    username: 'AnonymiceBot'
+};
 
-// Initialize bot pool
-BOT_POOL.forEach(bot => {
-    availableBots.set(bot.id, bot);
-});
-
-// Assign a bot from the pool to a conversation
+// Create a new conversation (unlimited)
 async function createBotForRoom(roomId, participantName) {
     try {
-        console.log(`🤖 Assigning bot for Room ${roomId} (${participantName})`);
+        console.log(`🤖 Creating conversation for Room ${roomId} (${participantName})`);
         
-        // Find an available bot
-        let assignedBot = null;
-        for (let [botId, bot] of availableBots) {
-            if (!usedBots.has(botId)) {
-                assignedBot = bot;
-                usedBots.add(botId);
-                break;
-            }
-        }
+        // Increment conversation counter
+        conversationCounter++;
         
-        if (!assignedBot) {
-            throw new Error('All bots are currently busy. Please try again in a few minutes.');
-        }
-        
-        const botInfo = {
+        const conversationInfo = {
             roomId: roomId,
             participantName: participantName,
-            botToken: assignedBot.token,
-            botUsername: assignedBot.username,
-            botId: assignedBot.id,
+            conversationNumber: conversationCounter,
+            botToken: MAIN_BOT.token,
+            botUsername: MAIN_BOT.username,
             createdAt: new Date().toISOString(),
             isActive: true
         };
         
-        // Store bot info
-        activeBots.set(roomId, botInfo);
+        // Store conversation info
+        activeConversations.set(roomId, conversationInfo);
         
-        // Set webhook for the bot
-        await setBotWebhook(assignedBot.token, roomId);
-        
-        console.log(`✅ Bot assigned successfully for Room ${roomId}: @${assignedBot.username}`);
-        return botInfo;
+        console.log(`✅ Conversation #${conversationCounter} created for Room ${roomId}: @${MAIN_BOT.username}`);
+        return conversationInfo;
     } catch (error) {
-        console.error(`❌ Failed to assign bot for Room ${roomId}:`, error.message);
+        console.error(`❌ Failed to create conversation for Room ${roomId}:`, error.message);
         throw error;
     }
 }
@@ -71,7 +43,8 @@ async function createBotForRoom(roomId, participantName) {
 // Set webhook for a bot
 async function setBotWebhook(botToken, roomId) {
     try {
-        const webhookUrl = `https://web-production-8d6b4.up.railway.app/telegram-webhook/${roomId}`;
+        // Use a single webhook endpoint for all conversations
+        const webhookUrl = `https://web-production-8d6b4.up.railway.app/telegram-webhook`;
         
         const response = await axios.post(`https://api.telegram.org/bot${botToken}/setWebhook`, {
             url: webhookUrl
@@ -89,13 +62,13 @@ async function setBotWebhook(botToken, roomId) {
 
 // Send message using a specific bot
 async function sendMessageWithBot(roomId, message) {
-    const botInfo = activeBots.get(roomId);
-    if (!botInfo) {
-        throw new Error(`No bot found for Room ${roomId}`);
+    const conversationInfo = activeConversations.get(roomId);
+    if (!conversationInfo) {
+        throw new Error(`No conversation found for Room ${roomId}`);
     }
     
     try {
-        const response = await axios.post(`https://api.telegram.org/bot${botInfo.botToken}/sendMessage`, {
+        const response = await axios.post(`https://api.telegram.org/bot${MAIN_BOT.token}/sendMessage`, {
             chat_id: process.env.TELEGRAM_CHAT_ID,
             text: message,
             parse_mode: 'HTML'
@@ -105,7 +78,7 @@ async function sendMessageWithBot(roomId, message) {
             return {
                 success: true,
                 messageId: response.data.result.message_id,
-                botInfo: botInfo
+                conversationInfo: conversationInfo
             };
         } else {
             throw new Error(`Send message failed: ${response.data.description}`);
@@ -116,43 +89,39 @@ async function sendMessageWithBot(roomId, message) {
     }
 }
 
-// Release bot back to pool when conversation ends
+// End conversation when room is cleaned
 async function deleteBotForRoom(roomId) {
-    const botInfo = activeBots.get(roomId);
-    if (!botInfo) {
-        console.log(`⚠️ No bot found for Room ${roomId} to release`);
+    const conversationInfo = activeConversations.get(roomId);
+    if (!conversationInfo) {
+        console.log(`⚠️ No conversation found for Room ${roomId} to end`);
         return;
     }
     
     try {
-        console.log(`🗑️ Releasing bot for Room ${roomId}: @${botInfo.botUsername}`);
+        console.log(`🗑️ Ending conversation #${conversationInfo.conversationNumber} for Room ${roomId}`);
         
-        // Delete webhook
-        await axios.post(`https://api.telegram.org/bot${botInfo.botToken}/deleteWebhook`);
+        // Remove conversation from active list
+        activeConversations.delete(roomId);
         
-        // Release bot back to pool
-        usedBots.delete(botInfo.botId);
-        activeBots.delete(roomId);
-        
-        console.log(`✅ Bot released successfully for Room ${roomId}`);
+        console.log(`✅ Conversation ended successfully for Room ${roomId}`);
     } catch (error) {
-        console.error(`❌ Error releasing bot for Room ${roomId}:`, error.message);
+        console.error(`❌ Error ending conversation for Room ${roomId}:`, error.message);
     }
 }
 
-// Get bot info for a room
+// Get conversation info for a room
 function getBotInfo(roomId) {
-    return activeBots.get(roomId);
+    return activeConversations.get(roomId);
 }
 
-// Get all active bots
+// Get all active conversations
 function getAllActiveBots() {
-    return Array.from(activeBots.values());
+    return Array.from(activeConversations.values());
 }
 
-// Check if room has an active bot
+// Check if room has an active conversation
 function hasActiveBot(roomId) {
-    return activeBots.has(roomId);
+    return activeConversations.has(roomId);
 }
 
 module.exports = {
