@@ -319,6 +319,9 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) 
                         // Activate the room
                         room.status = 'active';
                         
+                        // Enable service for this session
+                        serviceEnabled = true;
+                        
                         // Set up user connection properly
                         const participantName = response.participantName;
                         participantRooms.set(participantName, response.roomId);
