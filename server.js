@@ -141,9 +141,50 @@ app.post('/telegram-webhook', express.json(), (req, res) => {
                     // Approve the knock
                     if (response.socketId) {
                         const socket = io.sockets.sockets.get(response.socketId);
-                        if (socket) {
+                        const room = chatRooms.get(response.roomId);
+                        
+                        if (socket && room) {
+                            // Activate the room
+                            room.status = 'active';
+                            
+                            // Enable service for this session
+                            serviceEnabled = true;
+                            
+                            // Set up user connection properly
+                            const participantName = response.participantName;
+                            participantRooms.set(participantName, response.roomId);
+                            
+                            // Join the room
+                            socket.join(`room-${response.roomId}`);
+                            
+                            // Store connection
+                            activeConnections.set(socket.id, {
+                                type: 'participant',
+                                name: participantName,
+                                roomId: response.roomId
+                            });
+                            
+                            // Add welcome message
+                            const welcomeMessage = {
+                                id: Date.now(),
+                                text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
+                                sender: 'System',
+                                timestamp: new Date().toISOString(),
+                                isAdmin: false
+                            };
+                            room.messages.push(welcomeMessage);
+                            
+                            // Notify admin
+                            const adminEvent = {
+                                roomId: response.roomId,
+                                participant: { name: participantName }
+                            };
+                            io.to('admin-room').emit('new-participant', adminEvent);
+                            
+                            // Send approval to user
                             socket.emit('knock-approved', { roomId: response.roomId });
-                            console.log(`✅ Approved knock for ${response.participantName} in Room ${response.roomId}`);
+                            
+                            console.log(`✅ Approved knock for ${participantName} in Room ${response.roomId} - room activated and service enabled`);
                         }
                     }
                     break;
