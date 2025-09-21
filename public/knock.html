@@ -62,6 +62,21 @@
         socket.on('service-disabled', (data) => {
             showStatus(`🐱 ${data.message}`, 'error');
         });
+
+        socket.on('knock-pending', (data) => {
+            showStatus(`⏳ ${data.message}`, 'info');
+        });
+
+        socket.on('knock-approved', (data) => {
+            showStatus(`✅ Approved! Redirecting to room ${data.roomId}...`, 'success');
+            setTimeout(() => {
+                window.location.href = `/chat?room=${data.roomId}&name=${encodeURIComponent(nameInput.value.trim())}`;
+            }, 2000);
+        });
+
+        socket.on('knock-rejected', (data) => {
+            showStatus(`❌ ${data.message}`, 'error');
+        });
     
         function showStatus(message, type) {
             statusDiv.textContent = message;

@@ -281,16 +281,7 @@ io.on('connection', (socket) => {
 
     // Handle participant knock
     socket.on('knock', (data) => {
-        // Check if service is enabled
-        if (!serviceEnabled) {
-            console.log('🚫 Knock rejected - service is disabled');
-            socket.emit('service-disabled', { 
-                message: "The Cat is away. The mice can't play!" 
-            });
-            return;
-        }
-
-        // ATOMIC ROOM ASSIGNMENT - Find and claim a room in one operation
+        // Always send Telegram notification first, regardless of service status
         let roomId = null;
         let participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
         
@@ -305,7 +296,7 @@ io.on('connection', (socket) => {
                     id: i,
                     participant: { name: participantName },
                     messages: [],
-                    status: 'active',
+                    status: 'pending', // Mark as pending until approved
                     created: Date.now(),
                     claimed: true // Mark as claimed immediately
                 };
@@ -317,7 +308,7 @@ io.on('connection', (socket) => {
                 const verifyRoom = chatRooms.get(i);
                 if (verifyRoom && verifyRoom.participant.name === participantName) {
                     roomId = i;
-                    console.log(`🔒 ATOMICALLY CLAIMED room ${i} for ${participantName}`);
+                    console.log(`🔒 ATOMICALLY CLAIMED room ${i} for ${participantName} (pending approval)`);
                     break; // Exit loop immediately after claiming
                 } else {
                     console.log(`⚠️ Race condition detected for room ${i}, trying next room`);
@@ -330,8 +321,39 @@ io.on('connection', (socket) => {
         }
 
         if (roomId) {
+            // Send Telegram notification for knock (always, regardless of service status)
+            sendKnockNotification(participantName, roomId).then(() => {
+                // Set active room context for Telegram responses
+                setActiveRoomContext({
+                    type: 'knock',
+                    roomId: roomId,
+                    participantName: participantName,
+                    socketId: socket.id
+                });
+                console.log('📱 Telegram knock notification sent');
+            }).catch(error => {
+                console.error('❌ Failed to send Telegram knock notification:', error);
+            });
+            
+            // Check if service is enabled
+            if (!serviceEnabled) {
+                console.log('🚫 Knock received but service is disabled - waiting for Telegram approval');
+                socket.emit('knock-pending', { 
+                    message: "Knock received! Waiting for admin approval via Telegram...",
+                    roomId: roomId
+                });
+                return;
+            }
+        } else {
+            socket.emit('no-rooms-available');
+            return;
+        }
+
+        // If service is enabled, proceed with room activation
+        if (roomId && serviceEnabled) {
             const newRoom = chatRooms.get(roomId);
-            console.log(`🆕 Created fresh room ${roomId} for ${participantName}`);
+            newRoom.status = 'active'; // Activate the room
+            console.log(`🆕 Activated room ${roomId} for ${participantName}`);
             console.log(`🆕 Room messages count: ${newRoom.messages.length}`);
 
             // Store participant-room mapping
@@ -383,22 +405,6 @@ io.on('connection', (socket) => {
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
             console.log(`Participant rooms:`, Array.from(participantRooms.entries()));
-            
-            // Send Telegram notification for knock
-            sendKnockNotification(participantName, roomId).then(() => {
-                // Set active room context for Telegram responses
-                setActiveRoomContext({
-                    type: 'knock',
-                    roomId: roomId,
-                    participantName: participantName,
-                    socketId: socket.id
-                });
-                console.log('📱 Telegram knock notification sent');
-            }).catch(error => {
-                console.error('❌ Failed to send Telegram knock notification:', error);
-            });
-        } else {
-            socket.emit('no-rooms-available');
         }
     });
 
