@@ -621,7 +621,7 @@
 
         <!-- Central Admin Shortcuts Panel -->
         <div class="central-shortcuts">
-            <div class="central-shortcuts-title">⚡ Quick Messages - Click to insert into active chat (with participant)</div>
+            <div class="central-shortcuts-title">⚡ Quick Messages - Click on a chat window first, then click shortcut</div>
             <div class="central-shortcuts-grid">
                 <button class="central-shortcut-btn" onclick="insertCentralShortcut('Hello Mouse! Welcome! What are we talking about today?')">
                     🐭 Welcome
@@ -1464,40 +1464,24 @@
                 // Extract room ID from the textarea ID (e.g., "input-1" -> "1")
                 const roomId = activeTextarea.id.replace('input-', '');
                 
-                // Check if there's actually a participant in this room
-                const participantSpan = document.getElementById(`participant-${roomId}`);
-                const statusIndicator = document.getElementById(`status-${roomId}`);
+                // ALWAYS insert the message (even if room is empty)
+                activeTextarea.value = message;
+                activeTextarea.focus();
+                autoResize(activeTextarea);
                 
-                // Check if room has an active participant (not "Waiting..." or "Ready")
-                const hasParticipant = participantSpan && 
-                    !participantSpan.textContent.includes('Waiting') && 
-                    !participantSpan.textContent.includes('Ready') &&
-                    !participantSpan.textContent.includes('Left');
+                // Add visual feedback
+                const shortcutBtn = event.target;
+                const originalBg = shortcutBtn.style.background;
+                shortcutBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                setTimeout(() => {
+                    shortcutBtn.style.background = originalBg;
+                }, 200);
                 
-                if (hasParticipant) {
-                    // Room has an active participant - insert the message
-                    activeTextarea.value = message;
-                    activeTextarea.focus();
-                    autoResize(activeTextarea);
-                    
-                    // Add visual feedback
-                    const shortcutBtn = event.target;
-                    const originalBg = shortcutBtn.style.background;
-                    shortcutBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-                    setTimeout(() => {
-                        shortcutBtn.style.background = originalBg;
-                    }, 200);
-                    
-                    console.log(`✅ Message inserted into Room ${roomId} with active participant`);
-                } else {
-                    // No participant in this room
-                    showNotification(`Room ${roomId} has no active participant!`, 'warning');
-                    console.log(`⚠️ Room ${roomId} has no active participant`);
-                }
+                console.log(`✅ Message inserted into Room ${roomId}`);
             } else {
-                // If no textarea is focused, show a notification
-                showNotification('Please click on a chat window with an active participant first!', 'warning');
-                console.log('⚠️ No active chat window found');
+                // No textarea is focused - play error sound
+                playErrorSound();
+                console.log('⚠️ No active chat window found - playing error sound');
             }
         }
 
@@ -1881,7 +1865,31 @@
             }
         }
 
-
+        function playErrorSound() {
+            // Play a low, dull error sound
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Low, dull error tone
+                oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+                
+                console.log('🔊 Error sound played');
+            } catch (error) {
+                console.log('Error sound failed:', error);
+            }
+        }
 
     </script>
 </body>
