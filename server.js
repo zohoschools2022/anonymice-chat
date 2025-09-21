@@ -297,9 +297,11 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) 
     
     const message = req.body.message;
     console.log(`📱 Received message from ${clientIP}:`, message.text);
+    console.log(`📱 Message object:`, JSON.stringify(message, null, 2));
     
     // Handle the message using conversation tracking
     const response = handleTelegramMessage(message);
+    console.log(`📱 Response from handleTelegramMessage:`, JSON.stringify(response, null, 2));
     
     // Process the response if it's successful
     if (response && response.success) {

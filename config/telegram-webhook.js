@@ -11,6 +11,8 @@ function handleTelegramMessage(message) {
     const chatId = message.chat.id;
     
     console.log('📱 Received Telegram message:', text);
+    console.log('📱 Pending knocks:', Array.from(pendingKnocks.keys()));
+    console.log('📱 Active contexts:', Array.from(activeRoomContexts.keys()));
     
     // Check if this is a reply to a specific message
     if (message.reply_to_message) {
