@@ -373,15 +373,20 @@ io.on('connection', (socket) => {
 
         if (roomId) {
             // Send Telegram notification for knock (always, regardless of service status)
-            sendKnockNotification(participantName, roomId).then(() => {
-                // Set active room context for Telegram responses
-                setActiveRoomContext({
-                    type: 'knock',
-                    roomId: roomId,
-                    participantName: participantName,
-                    socketId: socket.id
-                });
-                console.log('📱 Telegram knock notification sent');
+            sendKnockNotification(participantName, roomId).then((result) => {
+                if (result.success) {
+                    // Set active room context for Telegram responses
+                    setActiveRoomContext({
+                        type: 'knock',
+                        roomId: roomId,
+                        participantName: participantName,
+                        socketId: socket.id,
+                        replyMessageId: result.messageId
+                    });
+                    console.log('📱 Telegram knock notification sent with message ID:', result.messageId);
+                } else {
+                    console.error('❌ Failed to send Telegram knock notification');
+                }
             }).catch(error => {
                 console.error('❌ Failed to send Telegram knock notification:', error);
             });
@@ -509,14 +514,19 @@ io.on('connection', (socket) => {
                 socket.emit('message-sent', message);
                 
                 // Send Telegram notification for user message
-                sendUserMessageNotification(connection.name, roomId, data.text).then(() => {
-                    // Set active room context for Telegram responses
-                    setActiveRoomContext({
-                        type: 'message',
-                        roomId: roomId,
-                        participantName: connection.name
-                    });
-                    console.log('📱 Telegram message notification sent');
+                sendUserMessageNotification(connection.name, roomId, data.text).then((result) => {
+                    if (result.success) {
+                        // Set active room context for Telegram responses
+                        setActiveRoomContext({
+                            type: 'message',
+                            roomId: roomId,
+                            participantName: connection.name,
+                            replyMessageId: result.messageId
+                        });
+                        console.log('📱 Telegram message notification sent with message ID:', result.messageId);
+                    } else {
+                        console.error('❌ Failed to send Telegram message notification');
+                    }
                 }).catch(error => {
                     console.error('❌ Failed to send Telegram message notification:', error);
                 });

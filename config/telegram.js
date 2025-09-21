@@ -37,7 +37,14 @@ async function sendKnockNotification(participantName, roomId) {
                    `• <code>away</code> - Send "away" message\n` +
                    `• Any other text - Custom message`;
 
-    return await sendTelegramMessage(message);
+    const result = await sendTelegramMessage(message);
+    
+    // Return the message ID for context tracking
+    return {
+        success: result ? true : false,
+        messageId: result ? result.message_id : null,
+        result: result
+    };
 }
 
 // Send user message notification
@@ -48,7 +55,14 @@ async function sendUserMessageNotification(participantName, roomId, message) {
                         `📝 <b>Message:</b> ${message}\n\n` +
                         `Reply to respond directly to this user.`;
 
-    return await sendTelegramMessage(notification);
+    const result = await sendTelegramMessage(notification);
+    
+    // Return the message ID for context tracking
+    return {
+        success: result ? true : false,
+        messageId: result ? result.message_id : null,
+        result: result
+    };
 }
 
 // Send admin response to user

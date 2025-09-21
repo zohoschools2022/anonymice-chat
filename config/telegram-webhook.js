@@ -1,8 +1,9 @@
 // Telegram Webhook Handler
 const axios = require('axios');
 
-// Store active room context for responses
-let activeRoomContext = null;
+// Store active room contexts for responses (queue system)
+let activeRoomContexts = new Map(); // Map of chatId -> context
+let pendingKnocks = new Map(); // Map of roomId -> context for knock responses
 
 // Handle incoming Telegram messages
 function handleTelegramMessage(message) {
@@ -11,20 +12,46 @@ function handleTelegramMessage(message) {
     
     console.log('📱 Received Telegram message:', text);
     
-    // Check if this is a response to a knock notification
-    if (activeRoomContext && activeRoomContext.type === 'knock') {
-        return handleKnockResponse(text, activeRoomContext);
+    // Check if this is a reply to a specific message
+    if (message.reply_to_message) {
+        const replyToMessageId = message.reply_to_message.message_id;
+        console.log('📱 This is a reply to message ID:', replyToMessageId);
+        
+        // Find context by reply message ID
+        for (let [roomId, context] of pendingKnocks) {
+            if (context.replyMessageId === replyToMessageId) {
+                console.log('📱 Found context for reply:', context);
+                return handleKnockResponse(text, context);
+            }
+        }
+        
+        // Check active message contexts
+        for (let [id, context] of activeRoomContexts) {
+            if (context.replyMessageId === replyToMessageId) {
+                console.log('📱 Found message context for reply:', context);
+                return handleMessageResponse(text, context);
+            }
+        }
     }
     
-    // Check if this is a response to a user message
-    if (activeRoomContext && activeRoomContext.type === 'message') {
-        return handleMessageResponse(text, activeRoomContext);
+    // Check if this is a response to the most recent knock
+    if (pendingKnocks.size > 0) {
+        const mostRecentKnock = Array.from(pendingKnocks.values()).pop();
+        console.log('📱 Using most recent knock context:', mostRecentKnock);
+        return handleKnockResponse(text, mostRecentKnock);
+    }
+    
+    // Check if this is a response to the most recent message
+    if (activeRoomContexts.size > 0) {
+        const mostRecentMessage = Array.from(activeRoomContexts.values()).pop();
+        console.log('📱 Using most recent message context:', mostRecentMessage);
+        return handleMessageResponse(text, mostRecentMessage);
     }
     
     // Default response
     return {
         success: false,
-        message: 'No active context found. Please wait for a notification.'
+        message: 'No active context found. Please wait for a notification or reply to a specific message.'
     };
 }
 
@@ -88,16 +115,28 @@ function handleMessageResponse(response, context) {
     };
 }
 
-// Set active room context
+// Set active room context for knock
 function setActiveRoomContext(context) {
-    activeRoomContext = context;
-    console.log('🎯 Set active room context:', context);
+    if (context.type === 'knock') {
+        pendingKnocks.set(context.roomId, context);
+        console.log('📱 Knock context set for room:', context.roomId);
+    } else if (context.type === 'message') {
+        activeRoomContexts.set(context.roomId, context);
+        console.log('📱 Message context set for room:', context.roomId);
+    }
 }
 
 // Clear active room context
-function clearActiveRoomContext() {
-    activeRoomContext = null;
-    console.log('🧹 Cleared active room context');
+function clearActiveRoomContext(roomId = null) {
+    if (roomId) {
+        pendingKnocks.delete(roomId);
+        activeRoomContexts.delete(roomId);
+        console.log('📱 Context cleared for room:', roomId);
+    } else {
+        pendingKnocks.clear();
+        activeRoomContexts.clear();
+        console.log('📱 All contexts cleared');
+    }
 }
 
 module.exports = {
