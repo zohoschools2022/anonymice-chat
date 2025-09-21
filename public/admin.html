@@ -149,6 +149,7 @@
             max-width: 1600px;
             margin: 0 auto;
             height: calc(100vh - 120px);
+            background: rgba(255, 0, 0, 0.1); /* Debug: red tint to see grid area */
         }
         
         /* Individual chat containers - Dark Theme */
@@ -161,6 +162,7 @@
             overflow: hidden;
             border: 2px solid rgba(102, 126, 234, 0.3);
             transition: all 0.3s ease;
+            min-height: 200px; /* Debug: ensure minimum height */
             height: 400px;
             position: relative;
         }
