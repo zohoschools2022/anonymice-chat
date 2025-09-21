@@ -396,6 +396,15 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), (req, res) => {
                 }
                 break;
         }
+    } else if (response && !response.success) {
+        // Send helpful message back to Telegram if user didn't reply properly
+        console.log('📱 Sending helpful message to user:', response.message);
+        try {
+            const { sendTelegramMessage } = require('./config/telegram');
+            await sendTelegramMessage(response.message, process.env.TELEGRAM_CHAT_ID);
+        } catch (error) {
+            console.error('Failed to send helpful message:', error);
+        }
     }
     
     res.status(200).json(response || { success: false, message: 'No response generated' });
@@ -567,6 +576,7 @@ io.on('connection', (socket) => {
                                    `🏠 <b>Room:</b> ${roomId}\n` +
                                    `💬 <b>Conversation:</b> #${botInfo.conversationNumber}\n` +
                                    `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+                                   `⚠️ <b>IMPORTANT:</b> Use "Reply" button to respond to THIS specific knock!\n\n` +
                                    `Reply with:\n` +
                                    `• <code>approve</code> - Let them in\n` +
                                    `• <code>reject</code> - Reject them\n` +

@@ -34,19 +34,12 @@ function handleTelegramMessage(message) {
         }
     }
     
-    // Check if this is a response to the most recent knock
-    if (pendingKnocks.size > 0) {
-        const mostRecentKnock = Array.from(pendingKnocks.values()).pop();
-        console.log('📱 Using most recent knock context:', mostRecentKnock);
-        return handleKnockResponse(text, mostRecentKnock);
-    }
-    
-    // Check if this is a response to the most recent message
-    if (activeRoomContexts.size > 0) {
-        const mostRecentMessage = Array.from(activeRoomContexts.values()).pop();
-        console.log('📱 Using most recent message context:', mostRecentMessage);
-        return handleMessageResponse(text, mostRecentMessage);
-    }
+    // If not a reply, we need explicit context
+    console.log('📱 No reply context found - user must reply to specific message');
+    return {
+        success: false,
+        message: 'Please reply to the specific knock notification you want to respond to. Use the "Reply" button in Telegram on the notification message.'
+    };
     
     // Default response
     return {
