@@ -9,6 +9,150 @@ require('dotenv').config();
 // Telegram integration
 const { sendKnockNotification, sendUserMessageNotification } = require('./config/telegram');
 const { handleTelegramMessage, setActiveRoomContext, clearActiveRoomContext } = require('./config/telegram-webhook');
+const { createBotForRoom, sendMessageWithBot, deleteBotForRoom, getBotInfo } = require('./config/bot-factory');
+
+// Handle messages from dynamic bots
+function handleDynamicBotMessage(roomId, message) {
+    const text = message.text;
+    const botInfo = getBotInfo(roomId);
+    
+    if (!botInfo) {
+        console.log(`⚠️ No bot found for Room ${roomId}`);
+        return;
+    }
+    
+    console.log(`📱 Processing message for Room ${roomId} from bot @${botInfo.botUsername}`);
+    
+    // Handle different response types
+    switch (text.toLowerCase().trim()) {
+        case 'approve':
+            approveUserForRoom(roomId, botInfo);
+            break;
+        case 'reject':
+            rejectUserForRoom(roomId, botInfo, 'Your request has been rejected.');
+            break;
+        case 'away':
+            rejectUserForRoom(roomId, botInfo, 'The admin is currently away. Please try again later.');
+            break;
+        default:
+            // Custom message or reply to user message
+            if (text.toLowerCase().includes('approve') || text.toLowerCase().includes('reject') || text.toLowerCase().includes('away')) {
+                // Handle special cases
+                if (text.toLowerCase().includes('approve')) {
+                    approveUserForRoom(roomId, botInfo);
+                } else if (text.toLowerCase().includes('reject')) {
+                    rejectUserForRoom(roomId, botInfo, 'Your request has been rejected.');
+                } else if (text.toLowerCase().includes('away')) {
+                    rejectUserForRoom(roomId, botInfo, 'The admin is currently away. Please try again later.');
+                }
+            } else {
+                // Send message to user
+                sendMessageToUser(roomId, text, botInfo);
+            }
+            break;
+    }
+}
+
+// Approve user for room
+function approveUserForRoom(roomId, botInfo) {
+    const room = chatRooms.get(roomId);
+    if (!room) {
+        console.log(`⚠️ Room ${roomId} not found for approval`);
+        return;
+    }
+    
+    // Activate the room
+    room.status = 'active';
+    serviceEnabled = true;
+    
+    // Set up user connection
+    const participantName = room.participant.name;
+    participantRooms.set(participantName, roomId);
+    
+    // Find the socket for this room
+    const socket = Array.from(io.sockets.sockets.values()).find(s => {
+        const connection = activeConnections.get(s.id);
+        return connection && connection.roomId === roomId;
+    });
+    
+    if (socket) {
+        socket.join(`room-${roomId}`);
+        activeConnections.set(socket.id, {
+            type: 'participant',
+            name: participantName,
+            roomId: roomId
+        });
+        
+        // Add welcome message
+        const welcomeMessage = {
+            id: Date.now(),
+            text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
+            sender: 'System',
+            timestamp: new Date().toISOString(),
+            isAdmin: false
+        };
+        room.messages.push(welcomeMessage);
+        
+        // Notify admin
+        io.to('admin-room').emit('new-participant', {
+            roomId,
+            participant: { name: participantName }
+        });
+        
+        // Send approval to user
+        socket.emit('knock-approved', { roomId });
+        
+        console.log(`✅ Approved ${participantName} for Room ${roomId} via bot @${botInfo.botUsername}`);
+    }
+}
+
+// Reject user for room
+function rejectUserForRoom(roomId, botInfo, message) {
+    const room = chatRooms.get(roomId);
+    if (!room) {
+        console.log(`⚠️ Room ${roomId} not found for rejection`);
+        return;
+    }
+    
+    // Find the socket for this room
+    const socket = Array.from(io.sockets.sockets.values()).find(s => {
+        const connection = activeConnections.get(s.id);
+        return connection && connection.roomId === roomId;
+    });
+    
+    if (socket) {
+        socket.emit('knock-rejected', { message, roomId });
+        console.log(`❌ Rejected user for Room ${roomId} via bot @${botInfo.botUsername}: ${message}`);
+    }
+    
+    // Clean up the room and bot
+    chatRooms.delete(roomId);
+    deleteBotForRoom(roomId);
+}
+
+// Send message to user
+function sendMessageToUser(roomId, message, botInfo) {
+    const room = chatRooms.get(roomId);
+    if (!room) {
+        console.log(`⚠️ Room ${roomId} not found for message`);
+        return;
+    }
+    
+    const adminMessage = {
+        id: Date.now(),
+        text: message,
+        sender: ADMIN_NAME,
+        timestamp: new Date().toISOString(),
+        isAdmin: true
+    };
+    
+    room.messages.push(adminMessage);
+    
+    // Send to user in the room
+    io.to(`room-${roomId}`).emit('new-message', adminMessage);
+    
+    console.log(`📤 Admin message sent to Room ${roomId} via bot @${botInfo.botUsername}: ${message}`);
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -121,7 +265,24 @@ app.get('/debug-env', (req, res) => {
     });
 });
 
-// Telegram webhook endpoint
+// Telegram webhook endpoint for dynamic bots
+app.post('/telegram-webhook/:roomId', express.json(), (req, res) => {
+    const roomId = parseInt(req.params.roomId);
+    const message = req.body.message;
+    
+    if (!message || !message.text) {
+        return res.status(200).send('OK');
+    }
+    
+    console.log(`📱 Received message for Room ${roomId}:`, message.text);
+    
+    // Handle the message using the bot factory
+    handleDynamicBotMessage(roomId, message);
+    
+    res.status(200).send('OK');
+});
+
+// Telegram webhook endpoint (fallback for main bot)
 app.post('/telegram-webhook', express.json(), (req, res) => {
     try {
         const message = req.body.message;
@@ -369,8 +530,24 @@ io.on('connection', (socket) => {
         }
 
         if (roomId) {
-            // Send Telegram notification for knock (always, regardless of service status)
-            sendKnockNotification(participantName, roomId).then((result) => {
+            // Create a dedicated bot for this conversation
+            createBotForRoom(roomId, participantName).then((botInfo) => {
+                console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
+                
+                // Send knock notification using the new bot
+                const knockMessage = `🔔 <b>Someone Knocked!</b>\n\n` +
+                                   `👤 <b>Name:</b> ${participantName}\n` +
+                                   `🏠 <b>Room:</b> ${roomId}\n` +
+                                   `🤖 <b>Bot:</b> @${botInfo.botUsername}\n` +
+                                   `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+                                   `Reply with:\n` +
+                                   `• <code>approve</code> - Let them in\n` +
+                                   `• <code>reject</code> - Reject them\n` +
+                                   `• <code>away</code> - Send "away" message\n` +
+                                   `• Any other text - Custom message`;
+                
+                return sendMessageWithBot(roomId, knockMessage);
+            }).then((result) => {
                 if (result.success) {
                     // Set active room context for Telegram responses
                     setActiveRoomContext({
@@ -378,14 +555,30 @@ io.on('connection', (socket) => {
                         roomId: roomId,
                         participantName: participantName,
                         socketId: socket.id,
-                        replyMessageId: result.messageId
+                        replyMessageId: result.messageId,
+                        botInfo: result.botInfo
                     });
-                    console.log('📱 Telegram knock notification sent with message ID:', result.messageId);
+                    console.log('📱 Telegram knock notification sent with dedicated bot');
                 } else {
                     console.error('❌ Failed to send Telegram knock notification');
                 }
             }).catch(error => {
-                console.error('❌ Failed to send Telegram knock notification:', error);
+                console.error('❌ Failed to create bot or send notification:', error);
+                // Fallback to regular notification if bot creation fails
+                sendKnockNotification(participantName, roomId).then((result) => {
+                    if (result.success) {
+                        setActiveRoomContext({
+                            type: 'knock',
+                            roomId: roomId,
+                            participantName: participantName,
+                            socketId: socket.id,
+                            replyMessageId: result.messageId
+                        });
+                        console.log('📱 Fallback notification sent');
+                    }
+                }).catch(fallbackError => {
+                    console.error('❌ Fallback notification also failed:', fallbackError);
+                });
             });
             
             // Check if service is enabled
