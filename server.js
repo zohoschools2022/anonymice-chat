@@ -377,29 +377,56 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) 
                 }
                 break;
                 
-            case 'reply':
-                // Send admin response to user
-                const room = chatRooms.get(response.roomId);
-                if (room) {
-                    const adminMessage = {
-                        id: Date.now(),
-                        text: response.message,
-                        sender: ADMIN_NAME,
-                        timestamp: new Date().toISOString(),
-                        isAdmin: true
-                    };
+                case 'reply':
+                    // Send admin response to user
+                    const room = chatRooms.get(response.roomId);
+                    if (room) {
+                        const adminMessage = {
+                            id: Date.now(),
+                            text: response.message,
+                            sender: ADMIN_NAME,
+                            timestamp: new Date().toISOString(),
+                            isAdmin: true
+                        };
+                        
+                        room.messages.push(adminMessage);
+                        
+                        // Send to user in the room
+                        io.to(`room-${response.roomId}`).emit('new-message', adminMessage);
+                        
+                        // Also notify admin interface
+                        io.to('admin-room').emit('admin-message', { roomId: response.roomId, message: adminMessage });
+                        
+                        console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
+                    }
+                    break;
                     
-                    room.messages.push(adminMessage);
-                    
-                    // Send to user in the room
-                    io.to(`room-${response.roomId}`).emit('new-message', adminMessage);
-                    
-                    // Also notify admin interface
-                    io.to('admin-room').emit('admin-message', { roomId: response.roomId, message: adminMessage });
-                    
-                    console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
-                }
-                break;
+                case 'close':
+                    // Close the conversation
+                    const roomToClose = chatRooms.get(response.roomId);
+                    if (roomToClose) {
+                        // Send close message to user
+                        const closeMessage = {
+                            id: Date.now(),
+                            text: "The admin has closed this conversation. Thank you for chatting!",
+                            sender: 'System',
+                            timestamp: new Date().toISOString(),
+                            isAdmin: false
+                        };
+                        
+                        roomToClose.messages.push(closeMessage);
+                        io.to(`room-${response.roomId}`).emit('new-message', closeMessage);
+                        
+                        // Notify admin interface
+                        io.to('admin-room').emit('room-closed', { roomId: response.roomId });
+                        
+                        // Clean up the room
+                        chatRooms.delete(response.roomId);
+                        deleteBotForRoom(response.roomId);
+                        
+                        console.log(`🔒 Room ${response.roomId} closed by admin`);
+                    }
+                    break;
         }
     } else if (response && !response.success) {
         // Send helpful message back to Telegram if user didn't reply properly
@@ -764,8 +791,8 @@ io.on('connection', (socket) => {
                 io.to('admin-room').emit('admin-message', { roomId, message });
                 socket.emit('message-sent', message);
                 
-                // Send Telegram notification for user message
-                sendUserMessageNotification(connection.name, roomId, data.text).then((result) => {
+                // Send Telegram notification for user message with chat history
+                sendUserMessageNotification(connection.name, roomId, data.text, room.messages).then((result) => {
                     if (result.success) {
                         // Set active room context for Telegram responses
                         setActiveRoomContext({
@@ -971,13 +998,25 @@ io.on('connection', (socket) => {
                     
                     room.messages.push(leaveMessage);
                     
-                    // Notify admin that participant left (so admin can see transcript and clean)
-                    console.log(`🔌 EMITTING participant-left event for room ${roomId}`);
-                    io.to('admin-room').emit('participant-left', {
-                        roomId,
-                        participant: connection,
-                        message: leaveMessage
-                    });
+                       // Notify admin that participant left (so admin can see transcript and clean)
+                       console.log(`🔌 EMITTING participant-left event for room ${roomId}`);
+                       io.to('admin-room').emit('participant-left', {
+                           roomId,
+                           participant: connection,
+                           message: leaveMessage
+                       });
+
+                       // Send Telegram notification that user left
+                       const { sendTelegramMessage } = require('./config/telegram');
+                       const leaveNotification = `👋 <b>User Left</b>\n\n` +
+                                               `👤 <b>Name:</b> ${connection.name}\n` +
+                                               `🏠 <b>Room:</b> ${roomId}\n` +
+                                               `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+                                               `The user has left the conversation.`;
+                       
+                       sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
+                           .then(() => console.log(`📱 Telegram notification sent: User ${connection.name} left Room ${roomId}`))
+                           .catch(error => console.error(`❌ Failed to send leave notification:`, error));
                     
                     console.log(`✅ Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);
                 } else if (room && room.status === 'pending') {

@@ -47,13 +47,24 @@ async function sendKnockNotification(participantName, roomId) {
     };
 }
 
-// Send user message notification
-async function sendUserMessageNotification(participantName, roomId, message) {
+// Send user message notification with full conversation history
+async function sendUserMessageNotification(participantName, roomId, message, chatHistory = []) {
+    // Build conversation history
+    let historyText = '';
+    if (chatHistory && chatHistory.length > 0) {
+        historyText = '\n\n📜 <b>Conversation History:</b>\n';
+        chatHistory.forEach(msg => {
+            const sender = msg.isAdmin ? '👨‍💼 Admin' : `👤 ${msg.sender}`;
+            const time = new Date(msg.timestamp).toLocaleTimeString();
+            historyText += `${sender} (${time}): ${msg.text}\n`;
+        });
+    }
+    
     const notification = `💬 <b>New Message</b>\n\n` +
                         `👤 <b>From:</b> ${participantName}\n` +
                         `🏠 <b>Room:</b> ${roomId}\n` +
-                        `📝 <b>Message:</b> ${message}\n\n` +
-                        `Reply to respond directly to this user.`;
+                        `📝 <b>Latest Message:</b> ${message}` +
+                        historyText + `\n\nReply to respond directly to this user.`;
 
     const result = await sendTelegramMessage(notification);
     

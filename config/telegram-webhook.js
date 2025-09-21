@@ -113,6 +113,17 @@ function handleKnockResponse(response, context) {
 function handleMessageResponse(response, context) {
     const { roomId, participantName } = context;
     
+    // Check for admin close command
+    if (response.toUpperCase().trim() === 'XXCLOSEXX') {
+        return {
+            success: true,
+            action: 'close',
+            roomId,
+            participantName,
+            message: 'Conversation closed by admin'
+        };
+    }
+    
     return {
         success: true,
         action: 'reply',
