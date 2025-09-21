@@ -220,10 +220,7 @@ app.post('/telegram-webhook', express.json(), (req, res) => {
                         room.messages.push(adminMessage);
                         
                         // Send to user in the room
-                        io.to(`room-${response.roomId}`).emit('admin-message', {
-                            roomId: response.roomId,
-                            message: adminMessage
-                        });
+                        io.to(`room-${response.roomId}`).emit('new-message', adminMessage);
                         
                         console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
                     }
@@ -703,6 +700,7 @@ io.on('connection', (socket) => {
                 console.log(`🔌 Room exists:`, !!room);
                 console.log(`🔌 Room status:`, room ? room.status : 'N/A');
                 
+                // Only add "left" message if room is active (not pending)
                 if (room && room.status === 'active') {
                     // Mark room as "left" instead of deleting it
                     room.status = 'left';
@@ -721,13 +719,16 @@ io.on('connection', (socket) => {
                     
                     // Notify admin that participant left (so admin can see transcript and clean)
                     console.log(`🔌 EMITTING participant-left event for room ${roomId}`);
-                    io.to('admin-room').emit('participant-left', { 
-                        roomId, 
+                    io.to('admin-room').emit('participant-left', {
+                        roomId,
                         participant: connection,
                         message: leaveMessage
                     });
                     
                     console.log(`✅ Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);
+                } else if (room && room.status === 'pending') {
+                    // For pending rooms, just clean up without adding "left" message
+                    console.log(`🔌 Participant ${connection.name} disconnected from pending room ${roomId} - no "left" message added`);
                 } else {
                     console.log(`⚠️ Room ${roomId} not found or not active, skipping participant-left event`);
                 }
