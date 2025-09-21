@@ -207,11 +207,30 @@
 
   <div class="chat-footer">
             <small>💡 Messages are not saved. Chat anonymously with Rajendran D.</small>
+            <br>
+            <small id="versionInfo">Loading version...</small>
         </div>
     </div>
 
 
     <script>
+        // Load version information
+        fetch('/debug')
+            .then(response => response.json())
+            .then(data => {
+                const versionInfo = document.getElementById('versionInfo');
+                if (data.build_time) {
+                    versionInfo.textContent = `Build: ${data.build_time}`;
+                } else {
+                    versionInfo.textContent = `Version: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
+                }
+            })
+            .catch(error => {
+                console.log('Could not load version info:', error);
+                const versionInfo = document.getElementById('versionInfo');
+                versionInfo.textContent = `Version: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
+            });
+
         const socket = io();
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');

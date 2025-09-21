@@ -301,7 +301,104 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), (req, res) => {
     // Handle the message using conversation tracking
     const response = handleTelegramMessage(message);
     
-    res.status(200).json(response);
+    // Process the response if it's successful
+    if (response && response.success) {
+        console.log('📱 Processing Telegram response:', response);
+        
+        // Process the response based on action
+        switch (response.action) {
+            case 'approve':
+                // Approve the knock
+                if (response.socketId) {
+                    const socket = io.sockets.sockets.get(response.socketId);
+                    const room = chatRooms.get(response.roomId);
+                    
+                    if (socket && room) {
+                        // Activate the room
+                        room.status = 'active';
+                        
+                        // Set up user connection properly
+                        const participantName = response.participantName;
+                        participantRooms.set(participantName, response.roomId);
+                        activeConnections.set(socket.id, {
+                            type: 'participant',
+                            name: participantName,
+                            roomId: response.roomId
+                        });
+                        
+                        // Join the room
+                        socket.join(`room-${response.roomId}`);
+                        
+                        // Add welcome message
+                        const welcomeMessage = {
+                            id: Date.now(),
+                            text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
+                            sender: 'System',
+                            timestamp: new Date().toISOString(),
+                            isAdmin: false
+                        };
+                        room.messages.push(welcomeMessage);
+                        
+                        // Notify admin
+                        io.to('admin-room').emit('new-participant', {
+                            roomId: response.roomId,
+                            participant: { name: participantName }
+                        });
+                        
+                        // Notify user
+                        socket.emit('knock-approved', {
+                            roomId: response.roomId,
+                            message: 'You have been approved! Welcome to the chat.'
+                        });
+                        
+                        console.log(`✅ User ${participantName} approved for Room ${response.roomId}`);
+                    }
+                }
+                break;
+                
+            case 'reject':
+            case 'away':
+            case 'custom':
+                // Reject the knock with message
+                if (response.socketId) {
+                    const socket = io.sockets.sockets.get(response.socketId);
+                    if (socket) {
+                        socket.emit('knock-rejected', { 
+                            message: response.message,
+                            roomId: response.roomId 
+                        });
+                        console.log(`❌ Rejected knock for ${response.participantName}: ${response.message}`);
+                    }
+                }
+                break;
+                
+            case 'reply':
+                // Send admin response to user
+                const room = chatRooms.get(response.roomId);
+                if (room) {
+                    const adminMessage = {
+                        id: Date.now(),
+                        text: response.message,
+                        sender: ADMIN_NAME,
+                        timestamp: new Date().toISOString(),
+                        isAdmin: true
+                    };
+                    
+                    room.messages.push(adminMessage);
+                    
+                    // Send to user in the room
+                    io.to(`room-${response.roomId}`).emit('new-message', adminMessage);
+                    
+                    // Also notify admin interface
+                    io.to('admin-room').emit('admin-message', { roomId: response.roomId, message: adminMessage });
+                    
+                    console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
+                }
+                break;
+        }
+    }
+    
+    res.status(200).json(response || { success: false, message: 'No response generated' });
 });
 
 
