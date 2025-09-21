@@ -1121,12 +1121,16 @@
         // Unread message tracking
         const unreadMessages = new Map(); // roomId -> count
         const lastReadTime = new Map(); // roomId -> timestamp
+        
+        // Track last focused textarea for shortcuts
+        let lastFocusedTextarea = null;
 
         // Initialize all 8 rooms (1-8)
         for (let i = 1; i <= 8; i++) {
             setupInputUI(i);
             setupCleanupButton(i);
             setupTileClickHandler(i);
+            setupTextareaFocusTracking(i);
         }
         
         // Initialize tile states
@@ -1500,19 +1504,26 @@
             }, 200);
         }
         
+        function setupTextareaFocusTracking(roomId) {
+            const textarea = document.getElementById(`input-${roomId}`);
+            if (textarea) {
+                textarea.addEventListener('focus', () => {
+                    lastFocusedTextarea = textarea;
+                    console.log(`📝 Room ${roomId} textarea focused`);
+                });
+            }
+        }
+        
         function insertCentralShortcut(message) {
-            // Find the currently focused textarea (the active chat window)
-            const activeTextarea = document.activeElement;
-            
-            // Check if the active element is a chat textarea
-            if (activeTextarea && activeTextarea.classList.contains('chat-textarea')) {
+            // Use the last focused textarea instead of document.activeElement
+            if (lastFocusedTextarea) {
                 // Extract room ID from the textarea ID (e.g., "input-1" -> "1")
-                const roomId = activeTextarea.id.replace('input-', '');
+                const roomId = lastFocusedTextarea.id.replace('input-', '');
                 
                 // ALWAYS insert the message (even if room is empty)
-                activeTextarea.value = message;
-                activeTextarea.focus();
-                autoResize(activeTextarea);
+                lastFocusedTextarea.value = message;
+                lastFocusedTextarea.focus();
+                autoResize(lastFocusedTextarea);
                 
                 // Add visual feedback
                 const shortcutBtn = event.target;
@@ -1524,9 +1535,9 @@
                 
                 console.log(`✅ Message inserted into Room ${roomId}`);
             } else {
-                // No textarea is focused - play error sound
+                // No textarea has been focused yet - play error sound
                 playErrorSound();
-                console.log('⚠️ No active chat window found - playing error sound');
+                console.log('⚠️ No chat window has been focused yet - playing error sound');
             }
         }
 
