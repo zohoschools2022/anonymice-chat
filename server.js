@@ -4,6 +4,11 @@ const socketIo = require('socket.io');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
+require('dotenv').config();
+
+// Telegram integration
+const { sendKnockNotification, sendUserMessageNotification } = require('./config/telegram');
+const { handleTelegramMessage, setActiveRoomContext, clearActiveRoomContext } = require('./config/telegram-webhook');
 
 const app = express();
 const server = http.createServer(app);
@@ -104,6 +109,85 @@ app.get('/chat', (req, res) => {
 
 app.get('/knock', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'knock.html'));
+});
+
+// Telegram webhook endpoint
+app.post('/telegram-webhook', express.json(), (req, res) => {
+    try {
+        const message = req.body.message;
+        if (!message || !message.text) {
+            return res.status(200).send('OK');
+        }
+        
+        console.log('📱 Received Telegram message:', message.text);
+        
+        // Handle the Telegram message
+        const response = handleTelegramMessage(message);
+        
+        if (response.success) {
+            // Process the response based on action
+            switch (response.action) {
+                case 'approve':
+                    // Approve the knock
+                    if (response.socketId) {
+                        const socket = io.sockets.sockets.get(response.socketId);
+                        if (socket) {
+                            socket.emit('knock-approved', { roomId: response.roomId });
+                            console.log(`✅ Approved knock for ${response.participantName} in Room ${response.roomId}`);
+                        }
+                    }
+                    break;
+                    
+                case 'reject':
+                case 'away':
+                case 'custom':
+                    // Reject the knock with message
+                    if (response.socketId) {
+                        const socket = io.sockets.sockets.get(response.socketId);
+                        if (socket) {
+                            socket.emit('knock-rejected', { 
+                                message: response.message,
+                                roomId: response.roomId 
+                            });
+                            console.log(`❌ Rejected knock for ${response.participantName}: ${response.message}`);
+                        }
+                    }
+                    break;
+                    
+                case 'reply':
+                    // Send admin response to user
+                    const room = chatRooms.get(response.roomId);
+                    if (room) {
+                        const adminMessage = {
+                            id: Date.now(),
+                            text: response.message,
+                            sender: ADMIN_NAME,
+                            timestamp: new Date().toISOString(),
+                            isAdmin: true
+                        };
+                        
+                        room.messages.push(adminMessage);
+                        
+                        // Send to user in the room
+                        io.to(`room-${response.roomId}`).emit('admin-message', {
+                            roomId: response.roomId,
+                            message: adminMessage
+                        });
+                        
+                        console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
+                    }
+                    break;
+            }
+            
+            // Clear the active context
+            clearActiveRoomContext();
+        }
+        
+        res.status(200).send('OK');
+    } catch (error) {
+        console.error('❌ Telegram webhook error:', error);
+        res.status(500).send('Error');
+    }
 });
 
 // Socket.IO connection handling
@@ -299,6 +383,20 @@ io.on('connection', (socket) => {
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
             console.log(`Participant rooms:`, Array.from(participantRooms.entries()));
+            
+            // Send Telegram notification for knock
+            sendKnockNotification(participantName, roomId).then(() => {
+                // Set active room context for Telegram responses
+                setActiveRoomContext({
+                    type: 'knock',
+                    roomId: roomId,
+                    participantName: participantName,
+                    socketId: socket.id
+                });
+                console.log('📱 Telegram knock notification sent');
+            }).catch(error => {
+                console.error('❌ Failed to send Telegram knock notification:', error);
+            });
         } else {
             socket.emit('no-rooms-available');
         }
@@ -352,6 +450,19 @@ io.on('connection', (socket) => {
                 io.to(`room-${roomId}`).emit('new-message', message);
                 io.to('admin-room').emit('admin-message', { roomId, message });
                 socket.emit('message-sent', message);
+                
+                // Send Telegram notification for user message
+                sendUserMessageNotification(connection.name, roomId, data.text).then(() => {
+                    // Set active room context for Telegram responses
+                    setActiveRoomContext({
+                        type: 'message',
+                        roomId: roomId,
+                        participantName: connection.name
+                    });
+                    console.log('📱 Telegram message notification sent');
+                }).catch(error => {
+                    console.error('❌ Failed to send Telegram message notification:', error);
+                });
             }
         }
     });
