@@ -360,6 +360,60 @@
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
+        /* Central Admin Shortcuts Panel */
+        .central-shortcuts {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .central-shortcuts-title {
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .central-shortcuts-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .central-shortcut-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .central-shortcut-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+        
+        .central-shortcut-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
         .input-row {
             display: flex;
             align-items: flex-end;
@@ -549,7 +603,7 @@
                 <div class="admin-header-left">
                     <span class="admin-title">🐭 Admin Dashboard</span>
                     <span class="admin-subtitle">Managing 8 concurrent chat sessions</span>
-                </div>
+                </div> -->
                 <div class="admin-header-right">
                     <span class="admin-info">Admin: Rajendran D</span>
                     <span class="admin-info" id="activeRooms">Active Rooms: 0</span>
@@ -560,8 +614,30 @@
                             <span class="slider"></span>
                         </label>
                         <span class="switch-label" id="switchLabel">Service: OFF</span>
-                    </div>
-                </div>
+                    </div> -->
+                </div> -->
+            </div>
+        </div>
+
+        <!-- Central Admin Shortcuts Panel -->
+        <div class="central-shortcuts">
+            <div class="central-shortcuts-title">⚡ Quick Messages - Click to insert into active chat</div>
+            <div class="central-shortcuts-grid">
+                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Hello Mouse! Welcome! What are we talking about today?')">
+                    🐭 Welcome
+                </button>
+                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Your connectivity seems spotty. Want to try later?')">
+                    📶 Connectivity
+                </button>
+                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Are you still around?')">
+                    👋 Still Here?
+                </button>
+                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Are you from Zoho Schools or from Jambav?')">
+                    🏫 School Check
+                </button>
+                <button class="central-shortcut-btn" onclick="insertCentralShortcut('Do you want to rephrase? I don\'t think I understand what you have written above.')">
+                    🤔 Rephrase
+                </button>
             </div>
         </div>
 
@@ -573,7 +649,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-1">Waiting...</span>
                     <span class="status-indicator" id="status-1">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-1" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-1" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -591,31 +667,14 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(1, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(1, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(1, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
-                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Hello Mouse! Welcome! What are we talking about today?')">
-                        🐭 Welcome
-                    </button>
-                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Your connectivity seems spotty. Want to try later?')">
-                        📶 Connectivity
-                    </button>
-                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Are you still around?')">
-                        👋 Still Here?
-                    </button>
-                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Are you from Zoho Schools or from Jambav?')">
-                        🏫 School Check
-                    </button>
-                    <button class="shortcut-btn" onclick="insertShortcut(1, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
-                        🤔 Rephrase
-                    </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-1" tabindex="1"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -626,7 +685,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-2">Waiting...</span>
                     <span class="status-indicator" id="status-2">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-2" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-2" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -644,8 +703,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(2, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(2, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(2, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(2, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -661,14 +721,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(2, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-2" tabindex="2"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -679,7 +739,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-3">Waiting...</span>
                     <span class="status-indicator" id="status-3">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-3" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-3" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -697,8 +757,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(3, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(3, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(3, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(3, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -714,14 +775,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(3, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-3" tabindex="3"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -732,7 +793,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-4">Waiting...</span>
                     <span class="status-indicator" id="status-4">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-4" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-4" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -750,8 +811,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(4, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(4, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(4, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(4, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -767,14 +829,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(4, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-4" tabindex="4"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -785,7 +847,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-5">Waiting...</span>
                     <span class="status-indicator" id="status-5">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-5" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-5" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -803,8 +865,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(5, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(5, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(5, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(5, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -820,14 +883,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(5, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-5" tabindex="5"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -838,7 +901,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-6">Waiting...</span>
                     <span class="status-indicator" id="status-6">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-6" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-6" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -856,8 +919,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(6, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(6, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(6, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(6, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -873,14 +937,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(6, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-6" tabindex="6"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -891,7 +955,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-7">Waiting...</span>
                     <span class="status-indicator" id="status-7">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-7" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-7" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -909,8 +973,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(7, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(7, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(7, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(7, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -926,14 +991,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(7, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-7" tabindex="7"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
 
@@ -944,7 +1009,7 @@
                 <div class="chat-info">
                     <span class="participant-name" id="participant-8">Waiting...</span>
                     <span class="status-indicator" id="status-8">○</span>
-                </div>
+                </div> -->
                 <button class="cleanup-btn" id="cleanup-8" style="display: none;">🧹 Clean</button>
                 <button class="stop-chat-btn" id="stop-chat-8" style="display: none;">🚫 Stop Chatting</button>
             </div>
@@ -962,8 +1027,9 @@
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(8, '💔')">💔</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(8, '💯')">💯</button>
                     <button class="emoji-btn" tabindex="-1" onclick="insertEmoji(8, '🙏')">🙏</button>
-                </div>
-                <div class="admin-shortcuts">
+                </div> -->
+                <!-- Admin shortcuts removed - using central panel -->
+                <!-- <div class="admin-shortcuts">
                     <button class="shortcut-btn" onclick="insertShortcut(8, 'Hello Mouse! Welcome! What are we talking about today?')">
                         🐭 Welcome
                     </button>
@@ -979,14 +1045,14 @@
                     <button class="shortcut-btn" onclick="insertShortcut(8, 'Do you want to rephrase? I don\'t think I understand what you have written above.')">
                         🤔 Rephrase
                     </button>
-                </div>
+                </div> -->
                 <div class="input-wrapper">
                     <div class="input-row">
                         <div style="position: relative; flex: 1;">
                             <textarea class="chat-textarea" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for new line)" id="input-8" tabindex="8"></textarea>
-                        </div>
-                    </div>
-                </div>
+                        </div> -->
+                    </div> -->
+                </div> -->
             </div>
         </div>
     </div>
@@ -1244,7 +1310,7 @@
                 <div class="message-header">
                     <span class="sender">${message.sender}</span>
                     <span class="timestamp">${timestamp}</span>
-                </div>
+                </div> -->
                 <div class="message-text">${formattedText}</div>
             `;
 
@@ -1387,6 +1453,32 @@
             setTimeout(() => {
                 shortcutBtn.style.background = originalBg;
             }, 200);
+        }
+        
+        function insertCentralShortcut(message) {
+            // Find the currently focused textarea (the active chat window)
+            const activeTextarea = document.activeElement;
+            
+            // Check if the active element is a chat textarea
+            if (activeTextarea && activeTextarea.classList.contains('chat-textarea')) {
+                activeTextarea.value = message;
+                activeTextarea.focus();
+                autoResize(activeTextarea);
+                
+                // Add visual feedback
+                const shortcutBtn = event.target;
+                const originalBg = shortcutBtn.style.background;
+                shortcutBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                setTimeout(() => {
+                    shortcutBtn.style.background = originalBg;
+                }, 200);
+                
+                console.log('✅ Message inserted into active chat window');
+            } else {
+                // If no textarea is focused, show a notification
+                showNotification('Please click on a chat window first!', 'warning');
+                console.log('⚠️ No active chat window found');
+            }
         }
 
         function setupCleanupButton(roomId) {
