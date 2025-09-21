@@ -115,9 +115,11 @@ function setActiveRoomContext(context) {
     if (context.type === 'knock') {
         pendingKnocks.set(context.roomId, context);
         console.log('📱 Knock context set for room:', context.roomId);
+        console.log('📱 Context details:', JSON.stringify(context, null, 2));
     } else if (context.type === 'message') {
         activeRoomContexts.set(context.roomId, context);
         console.log('📱 Message context set for room:', context.roomId);
+        console.log('📱 Context details:', JSON.stringify(context, null, 2));
     }
 }
 

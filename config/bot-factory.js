@@ -32,6 +32,9 @@ async function createBotForRoom(roomId, participantName) {
         // Store conversation info
         activeConversations.set(roomId, conversationInfo);
         
+        // Set webhook for the main bot (only once)
+        await setBotWebhook(MAIN_BOT.token, roomId);
+        
         console.log(`✅ Conversation #${conversationCounter} created for Room ${roomId}: @${MAIN_BOT.username}`);
         return conversationInfo;
     } catch (error) {
