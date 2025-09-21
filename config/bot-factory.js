@@ -1,58 +1,64 @@
-// Dynamic Bot Factory - Creates and manages Telegram bots on demand
+// Dynamic Bot Factory - Manages Telegram bots for conversations
 const axios = require('axios');
-
-// BotFather API for creating/deleting bots
-const BOTFATHER_API = 'https://api.telegram.org/bot';
-const BOTFATHER_TOKEN = process.env.BOTFATHER_TOKEN; // You'll need to get this from @BotFather
 
 // Store active bots
 const activeBots = new Map(); // Map of roomId -> bot info
+const availableBots = new Map(); // Map of botId -> bot info
+const usedBots = new Set(); // Set of bot IDs currently in use
 
-// Bot naming pattern
-const BOT_NAME_PREFIX = 'AnonymiceChat';
-const BOT_USERNAME_PREFIX = 'anonymice_chat_';
+// Bot pool - you can add more bot tokens here
+const BOT_POOL = [
+    { id: 1, token: process.env.TELEGRAM_BOT_TOKEN, username: 'AnonymiceBot' },
+    // Add more bots here as needed
+    // { id: 2, token: 'BOT_TOKEN_2', username: 'AnonymiceBot2' },
+    // { id: 3, token: 'BOT_TOKEN_3', username: 'AnonymiceBot3' },
+    // ... up to 10 or more bots
+];
 
-// Create a new bot for a conversation
+// Initialize bot pool
+BOT_POOL.forEach(bot => {
+    availableBots.set(bot.id, bot);
+});
+
+// Assign a bot from the pool to a conversation
 async function createBotForRoom(roomId, participantName) {
     try {
-        console.log(`🤖 Creating new bot for Room ${roomId} (${participantName})`);
+        console.log(`🤖 Assigning bot for Room ${roomId} (${participantName})`);
         
-        // Generate unique bot name and username
-        const timestamp = Date.now();
-        const botName = `${BOT_NAME_PREFIX}_${roomId}_${timestamp}`;
-        const botUsername = `${BOT_USERNAME_PREFIX}${roomId}_${timestamp}`;
-        
-        // Call BotFather API to create new bot
-        const createResponse = await axios.post(`${BOTFATHER_API}${BOTFATHER_TOKEN}/newbot`, {
-            name: botName,
-            username: botUsername
-        });
-        
-        if (createResponse.data.ok) {
-            const botToken = createResponse.data.result.token;
-            const botInfo = {
-                roomId: roomId,
-                participantName: participantName,
-                botToken: botToken,
-                botUsername: botUsername,
-                botName: botName,
-                createdAt: new Date().toISOString(),
-                isActive: true
-            };
-            
-            // Store bot info
-            activeBots.set(roomId, botInfo);
-            
-            // Set webhook for the new bot
-            await setBotWebhook(botToken, roomId);
-            
-            console.log(`✅ Bot created successfully for Room ${roomId}: @${botUsername}`);
-            return botInfo;
-        } else {
-            throw new Error(`BotFather API error: ${createResponse.data.description}`);
+        // Find an available bot
+        let assignedBot = null;
+        for (let [botId, bot] of availableBots) {
+            if (!usedBots.has(botId)) {
+                assignedBot = bot;
+                usedBots.add(botId);
+                break;
+            }
         }
+        
+        if (!assignedBot) {
+            throw new Error('No available bots in the pool. All bots are currently in use.');
+        }
+        
+        const botInfo = {
+            roomId: roomId,
+            participantName: participantName,
+            botToken: assignedBot.token,
+            botUsername: assignedBot.username,
+            botId: assignedBot.id,
+            createdAt: new Date().toISOString(),
+            isActive: true
+        };
+        
+        // Store bot info
+        activeBots.set(roomId, botInfo);
+        
+        // Set webhook for the bot
+        await setBotWebhook(assignedBot.token, roomId);
+        
+        console.log(`✅ Bot assigned successfully for Room ${roomId}: @${assignedBot.username}`);
+        return botInfo;
     } catch (error) {
-        console.error(`❌ Failed to create bot for Room ${roomId}:`, error.message);
+        console.error(`❌ Failed to assign bot for Room ${roomId}:`, error.message);
         throw error;
     }
 }
@@ -60,9 +66,9 @@ async function createBotForRoom(roomId, participantName) {
 // Set webhook for a bot
 async function setBotWebhook(botToken, roomId) {
     try {
-        const webhookUrl = `${process.env.RAILWAY_PUBLIC_DOMAIN || 'https://web-production-8d6b4.up.railway.app'}/telegram-webhook/${roomId}`;
+        const webhookUrl = `https://web-production-8d6b4.up.railway.app/telegram-webhook/${roomId}`;
         
-        const response = await axios.post(`${BOTFATHER_API}${botToken}/setWebhook`, {
+        const response = await axios.post(`https://api.telegram.org/bot${botToken}/setWebhook`, {
             url: webhookUrl
         });
         
@@ -84,7 +90,7 @@ async function sendMessageWithBot(roomId, message) {
     }
     
     try {
-        const response = await axios.post(`${BOTFATHER_API}${botInfo.botToken}/sendMessage`, {
+        const response = await axios.post(`https://api.telegram.org/bot${botInfo.botToken}/sendMessage`, {
             chat_id: process.env.TELEGRAM_CHAT_ID,
             text: message,
             parse_mode: 'HTML'
@@ -105,33 +111,27 @@ async function sendMessageWithBot(roomId, message) {
     }
 }
 
-// Delete bot when conversation ends
+// Release bot back to pool when conversation ends
 async function deleteBotForRoom(roomId) {
     const botInfo = activeBots.get(roomId);
     if (!botInfo) {
-        console.log(`⚠️ No bot found for Room ${roomId} to delete`);
+        console.log(`⚠️ No bot found for Room ${roomId} to release`);
         return;
     }
     
     try {
-        console.log(`🗑️ Deleting bot for Room ${roomId}: @${botInfo.botUsername}`);
+        console.log(`🗑️ Releasing bot for Room ${roomId}: @${botInfo.botUsername}`);
         
-        // Delete webhook first
-        await axios.post(`${BOTFATHER_API}${botInfo.botToken}/deleteWebhook`);
+        // Delete webhook
+        await axios.post(`https://api.telegram.org/bot${botInfo.botToken}/deleteWebhook`);
         
-        // Delete bot via BotFather
-        const deleteResponse = await axios.post(`${BOTFATHER_API}${BOTFATHER_TOKEN}/deletebot`, {
-            bot_username: botInfo.botUsername
-        });
+        // Release bot back to pool
+        usedBots.delete(botInfo.botId);
+        activeBots.delete(roomId);
         
-        if (deleteResponse.data.ok) {
-            activeBots.delete(roomId);
-            console.log(`✅ Bot deleted successfully for Room ${roomId}`);
-        } else {
-            console.error(`❌ Failed to delete bot for Room ${roomId}:`, deleteResponse.data.description);
-        }
+        console.log(`✅ Bot released successfully for Room ${roomId}`);
     } catch (error) {
-        console.error(`❌ Error deleting bot for Room ${roomId}:`, error.message);
+        console.error(`❌ Error releasing bot for Room ${roomId}:`, error.message);
     }
 }
 
