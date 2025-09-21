@@ -36,7 +36,7 @@ async function createBotForRoom(roomId, participantName) {
         }
         
         if (!assignedBot) {
-            throw new Error('No available bots in the pool. All bots are currently in use.');
+            throw new Error('All bots are currently busy. Please try again in a few minutes.');
         }
         
         const botInfo = {

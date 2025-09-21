@@ -10,6 +10,15 @@ require('dotenv').config();
 const { sendKnockNotification, sendUserMessageNotification } = require('./config/telegram');
 const { handleTelegramMessage, setActiveRoomContext, clearActiveRoomContext } = require('./config/telegram-webhook');
 const { createBotForRoom, sendMessageWithBot, deleteBotForRoom, getBotInfo } = require('./config/bot-factory');
+const { 
+    SECURITY_CONFIG, 
+    checkRateLimit, 
+    checkUserRateLimit, 
+    validateMessage, 
+    validateRoomCreation, 
+    validateWebhookRequest, 
+    getClientIP 
+} = require('./config/security');
 
 // Handle messages from dynamic bots
 function handleDynamicBotMessage(roomId, message) {
@@ -266,15 +275,26 @@ app.get('/debug-env', (req, res) => {
 });
 
 // Telegram webhook endpoint for dynamic bots
-app.post('/telegram-webhook/:roomId', express.json(), (req, res) => {
+app.post('/telegram-webhook/:roomId', express.json({ limit: '10kb' }), (req, res) => {
     const roomId = parseInt(req.params.roomId);
-    const message = req.body.message;
+    const clientIP = getClientIP(req);
     
-    if (!message || !message.text) {
-        return res.status(200).send('OK');
+    // Validate webhook request
+    const webhookValidation = validateWebhookRequest(req);
+    if (!webhookValidation.valid) {
+        console.log(`🚫 Invalid webhook request from ${clientIP}: ${webhookValidation.error}`);
+        return res.status(400).send('Bad Request');
     }
     
-    console.log(`📱 Received message for Room ${roomId}:`, message.text);
+    // Check rate limit
+    const rateLimit = checkRateLimit(clientIP, 'webhook');
+    if (!rateLimit.allowed) {
+        console.log(`🚫 Rate limited webhook request from ${clientIP}`);
+        return res.status(429).send('Too Many Requests');
+    }
+    
+    const message = req.body.message;
+    console.log(`📱 Received message for Room ${roomId} from ${clientIP}:`, message.text);
     
     // Handle the message using the bot factory
     handleDynamicBotMessage(roomId, message);
@@ -490,6 +510,30 @@ io.on('connection', (socket) => {
 
     // Handle participant knock
     socket.on('knock', (data) => {
+        const clientIP = socket.handshake.address;
+        
+        // Validate room creation
+        const roomValidation = validateRoomCreation(clientIP, socket.id);
+        if (!roomValidation.valid) {
+            console.log(`🚫 Knock rejected for ${clientIP}: ${roomValidation.error}`);
+            socket.emit('knock-rejected', { 
+                message: roomValidation.error,
+                resetTime: roomValidation.resetTime
+            });
+            return;
+        }
+        
+        // Validate participant name
+        const nameValidation = validateMessage(data.name || '');
+        if (!nameValidation.valid) {
+            console.log(`🚫 Invalid name from ${clientIP}: ${nameValidation.error}`);
+            socket.emit('knock-rejected', { 
+                message: 'Invalid name provided',
+                resetTime: null
+            });
+            return;
+        }
+        
         // Always send Telegram notification first, regardless of service status
         let roomId = null;
         let participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
@@ -659,6 +703,25 @@ io.on('connection', (socket) => {
         // Check if service is enabled
         if (!serviceEnabled) {
             console.log('🚫 Message rejected - service is disabled');
+            return;
+        }
+
+        // Validate message content
+        const messageValidation = validateMessage(data.text);
+        if (!messageValidation.valid) {
+            console.log(`🚫 Invalid message from socket ${socket.id}: ${messageValidation.error}`);
+            socket.emit('message-error', { error: messageValidation.error });
+            return;
+        }
+
+        // Check user rate limit
+        const userRateLimit = checkUserRateLimit(socket.id, 'message');
+        if (!userRateLimit.allowed) {
+            console.log(`🚫 Message rate limited for socket ${socket.id}`);
+            socket.emit('message-error', { 
+                error: 'Too many messages. Please slow down.',
+                resetTime: userRateLimit.resetTime
+            });
             return;
         }
 
