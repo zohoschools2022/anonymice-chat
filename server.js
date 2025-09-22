@@ -319,9 +319,6 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         // Activate the room
                         room.status = 'active';
                         
-                        // Enable service for this session
-                        serviceEnabled = true;
-                        
                         // Set up user connection properly
                         const participantName = response.participantName;
                         participantRooms.set(participantName, response.roomId);
@@ -576,6 +573,18 @@ io.on('connection', (socket) => {
         // Always send Telegram notification first, regardless of service status
         let roomId = null;
         let participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
+        
+        // Check if this user already has a pending knock
+        for (let [existingRoomId, room] of chatRooms) {
+            if (room.participant && room.participant.name === participantName && room.status === 'pending') {
+                console.log(`⚠️ User ${participantName} already has a pending knock in Room ${existingRoomId}`);
+                socket.emit('knock-pending', { 
+                    message: "You already have a pending request. Please wait for approval or try again later.",
+                    roomId: existingRoomId
+                });
+                return;
+            }
+        }
         
         // Try to find and claim an available room atomically
         for (let i = 1; i <= maxRooms; i++) {
