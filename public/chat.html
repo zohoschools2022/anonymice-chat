@@ -618,11 +618,26 @@
 
         // Handle leave room button
         leaveRoomBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to leave this chat room?')) {
+            if (confirm('Are you sure you want to leave this chat room?\n\nYou can copy any important messages before leaving.')) {
                 socket.emit('leave-room');
-                addSystemMessage('You have left the chat room.');
+                addSystemMessage('You have left the chat room. Redirecting to homepage...');
                 leaveRoomBtn.disabled = true;
                 messageInput.disabled = true;
+                
+                // Redirect to homepage after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }
+        });
+
+        // Handle browser tab close/refresh
+        window.addEventListener('beforeunload', (event) => {
+            // Only show confirmation if user is in an active chat
+            if (socket && socket.connected) {
+                event.preventDefault();
+                event.returnValue = 'Are you sure you want to leave? You can copy any important messages before closing.';
+                return event.returnValue;
             }
         });
 
