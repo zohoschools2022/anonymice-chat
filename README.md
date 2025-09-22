@@ -25,14 +25,14 @@ A web-based anonymous chat application with a tiled interface for managing up to
    ```
 
 3. **Access the Application**:
-   - **Home Page**: `http://localhost:3000`
-   - **Knock Page**: `http://localhost:3000/knock`
-   - **Admin Dashboard**: `http://localhost:3000/admin/{ADMIN_URL}` (URL will be shown in console)
+   - **Home Page**: `https://web-production-8d6b4.up.railway.app/`
+   - **Knock Page**: `https://web-production-8d6b4.up.railway.app/knock`
+   - **Admin Dashboard**: `https://web-production-8d6b4.up.railway.app/admin/{ADMIN_URL}` (URL will be shown in console)
 
 ## How It Works
 
 ### For Participants:
-1. Visit the knock page: `http://localhost:3000/knock`
+1. Visit the knock page: `https://web-production-8d6b4.up.railway.app/knock`
 2. Enter any name you'd like to use
 3. Click "Knock & Join"
 4. If a slot is available, you'll be assigned to a chat room
