@@ -27,8 +27,9 @@ async function sendTelegramMessage(message, options = {}) {
 
 // Send knock notification
 async function sendKnockNotification(participantName, roomId) {
-    const time = new Date().toLocaleTimeString('en-US', { 
-        hour12: false, 
+    const time = new Date().toLocaleTimeString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour12: true, 
         hour: '2-digit', 
         minute: '2-digit' 
     });
@@ -75,9 +76,10 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
                     sender = msg.sender;
                 }
                 
-                // Format time as HH:MM (remove seconds)
-                const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { 
-                    hour12: false, 
+                // Format time as HH:MM AM/PM in IST
+                const time = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
+                    timeZone: 'Asia/Kolkata',
+                    hour12: true, 
                     hour: '2-digit', 
                     minute: '2-digit' 
                 });
