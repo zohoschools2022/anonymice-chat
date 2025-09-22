@@ -616,9 +616,13 @@
             lastTouchEnd = now;
         }, false);
 
+        // Flag to track intentional leaving
+        let isIntentionallyLeaving = false;
+
         // Handle leave room button
         leaveRoomBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to leave this chat room?\n\nYou can copy any important messages before leaving.')) {
+                isIntentionallyLeaving = true; // Set flag to prevent beforeunload dialog
                 socket.emit('leave-room');
                 addSystemMessage('You have left the chat room. Redirecting to homepage...');
                 leaveRoomBtn.disabled = true;
@@ -633,8 +637,8 @@
 
         // Handle browser tab close/refresh
         window.addEventListener('beforeunload', (event) => {
-            // Only show confirmation if user is in an active chat
-            if (socket && socket.connected) {
+            // Only show confirmation if user is in an active chat AND not intentionally leaving
+            if (socket && socket.connected && !isIntentionallyLeaving) {
                 event.preventDefault();
                 event.returnValue = 'Are you sure you want to leave? You can copy any important messages before closing.';
                 return event.returnValue;
