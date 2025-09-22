@@ -336,6 +336,7 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
         console.log('📱 Processing admin response:', response);
         
         // Process the response based on action
+        const { sendTelegramMessage } = require('./config/telegram');
         switch (response.action) {
             case 'approve':
                 // Approve the knock
@@ -501,7 +502,6 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         console.log(`😴 Sleep time set for ${response.minutes} minutes until ${serviceSleepUntil.toLocaleString()}`);
                         
                         // Send confirmation to Telegram
-                        const { sendTelegramMessage } = require('./config/telegram');
                         sendTelegramMessage(`😴 Sleep mode activated for ${response.minutes} minutes.\n⏰ Will resume at ${serviceSleepUntil.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}`);
                     }
                     break;
@@ -512,13 +512,11 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                     console.log('😴 Sleep time cleared - service is now active');
                     
                     // Send confirmation to Telegram
-                    const { sendTelegramMessage } = require('./config/telegram');
                     sendTelegramMessage('😴 Sleep mode cleared - service is now active!');
                     break;
                     
                 case 'sleep_status':
                     // Check sleep status
-                    const { sendTelegramMessage } = require('./config/telegram');
                     if (serviceSleepUntil) {
                         const remainingMinutes = Math.ceil((serviceSleepUntil - new Date()) / (60 * 1000));
                         sendTelegramMessage(`😴 Sleep mode is active.\n⏰ ${remainingMinutes} minutes remaining until ${serviceSleepUntil.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}`);
