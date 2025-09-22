@@ -699,6 +699,7 @@ io.on('connection', (socket) => {
         }
         
         // Try to find and claim an available room atomically
+        console.log(`🔍 Looking for available room for ${participantName}. Current rooms:`, Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`));
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
             
@@ -800,6 +801,7 @@ io.on('connection', (socket) => {
                 return;
             }
         } else {
+            console.log(`❌ No rooms available for ${participantName}. All ${maxRooms} rooms are occupied.`);
             socket.emit('no-rooms-available');
             return;
         }
