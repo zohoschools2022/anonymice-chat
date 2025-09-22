@@ -956,6 +956,10 @@ io.on('connection', (socket) => {
                 
                 const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})${conversationSummary}`;
                 
+                console.log(`📱 Sending final summary for ${connection.name} from Room ${roomId}`);
+                console.log(`📱 Summary length: ${leaveNotification.length} characters`);
+                console.log(`📱 Summary preview: ${leaveNotification.substring(0, 100)}...`);
+                
                 sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
                     .then(() => console.log(`📱 Final conversation summary sent: User ${connection.name} left Room ${roomId}`))
                     .catch(error => console.error(`❌ Failed to send final summary:`, error));
