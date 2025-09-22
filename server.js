@@ -749,10 +749,21 @@ io.on('connection', (socket) => {
 
     // Handle chat messages
     socket.on('send-message', (data) => {
-        // Check if service is enabled
-        if (!serviceEnabled) {
-            console.log('🚫 Message rejected - service is disabled');
+        // Get connection info first to check room status
+        const connection = activeConnections.get(socket.id);
+        if (!connection) {
+            console.log('❌ No connection found for socket:', socket.id);
             return;
+        }
+        
+        // For participants, check if their room is active
+        if (connection.type === 'participant') {
+            const room = chatRooms.get(connection.roomId);
+            if (!room || room.status !== 'active') {
+                console.log('🚫 Message rejected - room not active for participant');
+                socket.emit('message-error', { error: 'Room is not active. Please wait for approval.' });
+                return;
+            }
         }
 
         // Validate message content
@@ -775,13 +786,7 @@ io.on('connection', (socket) => {
         }
 
         console.log('📨 Message received from socket:', socket.id);
-        const connection = activeConnections.get(socket.id);
         console.log('🔗 Connection found:', connection);
-        if (!connection) {
-            console.log('❌ No connection found for socket:', socket.id);
-            console.log('📊 Active connections:', Array.from(activeConnections.entries()));
-            return;
-        }
 
         const message = {
             id: Date.now(),
