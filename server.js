@@ -190,6 +190,9 @@ let adminStatus = { isActive: true, lastUpdate: new Date().toISOString() };
 // Service status tracking (default: OFF)
 let serviceEnabled = false;
 
+// Sleep window: during this period knocks are not forwarded and users are asked to try later
+let sleepUntil = 0; // epoch ms; 0 means not sleeping
+
 // Persistence file
 const DATA_FILE = path.join(__dirname, 'chat_data.json');
 
@@ -265,6 +268,31 @@ app.get('/chat', (req, res) => {
 
 app.get('/knock', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'knock.html'));
+});
+
+// Admin: set sleep window in minutes (blocks new knocks)
+// Usage: POST /admin/sleep { minutes: 60 }  with header X-Admin-Secret: <ADMIN_SECRET>
+app.post('/admin/sleep', express.json(), (req, res) => {
+    const adminSecret = req.headers['x-admin-secret'];
+    if (process.env.ADMIN_SECRET && adminSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+    const minutes = parseInt(req.body?.minutes, 10) || 60;
+    const now = Date.now();
+    sleepUntil = now + minutes * 60 * 1000;
+    console.log(`😴 Sleep mode enabled for ${minutes} minutes (until ${new Date(sleepUntil).toISOString()})`);
+    return res.json({ ok: true, sleep_until: new Date(sleepUntil).toISOString() });
+});
+
+// Admin: clear sleep window
+app.post('/admin/sleep/clear', (req, res) => {
+    const adminSecret = req.headers['x-admin-secret'];
+    if (process.env.ADMIN_SECRET && adminSecret !== process.env.ADMIN_SECRET) {
+        return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+    sleepUntil = 0;
+    console.log('😴 Sleep mode cleared');
+    return res.json({ ok: true });
 });
 
 // Debug endpoint to check environment variables
@@ -592,6 +620,19 @@ io.on('connection', (socket) => {
             socket.emit('knock-rejected', { 
                 message: 'Invalid name provided',
                 resetTime: null
+            });
+            return;
+        }
+
+        // Respect sleep window: do not forward knocks, inform the user
+        const now = Date.now();
+        if (sleepUntil && now < sleepUntil) {
+            const remainingMs = sleepUntil - now;
+            const remainingMin = Math.max(1, Math.ceil(remainingMs / 60000));
+            const msg = `Rajendran is busy elsewhere. Please try again after ${remainingMin} minute${remainingMin > 1 ? 's' : ''}.`;
+            console.log(`😴 Knock blocked due to sleep window (${remainingMin}m left) from ${clientIP}`);
+            socket.emit('knock-rejected', { 
+                message: msg
             });
             return;
         }
