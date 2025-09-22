@@ -828,6 +828,12 @@ io.on('connection', (socket) => {
           socket.emit('room-not-found'); return;
         }
     
+        // Cancel grace period if user is reconnecting (not actually leaving)
+        if (room.disconnectGracePeriod) {
+            room.disconnectGracePeriod = false;
+            console.log(`🔍 User ${participantName} reconnected to room ${roomId} - grace period cancelled`);
+        }
+        
         activeConnections.set(socket.id, { type: 'participant', name: participantName, roomId });
         socket.join(`room-${roomId}`);
         console.log(`🔍 Join-room: Sending ${room.messages.length} messages to participant ${participantName}`);
@@ -983,43 +989,56 @@ io.on('connection', (socket) => {
                 
                 // Only add "left" message if room is active (not pending)
                 if (room && room.status === 'active') {
-                    // Mark room as "left" instead of deleting it
-                    room.status = 'left';
-                    room.leftAt = Date.now();
+                    // Add a grace period to distinguish between page navigation and real leaving
+                    // If user reconnects within 5 seconds, don't add "left" message
+                    room.disconnectTime = Date.now();
+                    room.disconnectGracePeriod = true;
                     
-                    // Add leave message to room
-                    const leaveMessage = {
-                        id: Date.now(),
-                        text: `${connection.name} has left the chat room.`,
-                        sender: 'System',
-                        timestamp: new Date().toISOString(),
-                        isAdmin: false
-                    };
-                    
-                    room.messages.push(leaveMessage);
-                    
-                       // Notify admin that participant left (so admin can see transcript and clean)
-                       console.log(`🔌 EMITTING participant-left event for room ${roomId}`);
-                       io.to('admin-room').emit('participant-left', {
-                           roomId,
-                           participant: connection,
-                           message: leaveMessage
-                       });
+                    // Set a timeout to add the "left" message if user doesn't reconnect
+                    setTimeout(() => {
+                        const currentRoom = chatRooms.get(roomId);
+                        if (currentRoom && currentRoom.disconnectGracePeriod && currentRoom.status === 'active') {
+                            // User didn't reconnect, they actually left
+                            currentRoom.status = 'left';
+                            currentRoom.leftAt = Date.now();
+                            
+                            // Add leave message to room
+                            const leaveMessage = {
+                                id: Date.now(),
+                                text: `${connection.name} has left the chat room.`,
+                                sender: 'System',
+                                timestamp: new Date().toISOString(),
+                                isAdmin: false
+                            };
+                            
+                            currentRoom.messages.push(leaveMessage);
+                            
+                            // Notify admin that participant left (so admin can see transcript and clean)
+                            console.log(`🔌 EMITTING participant-left event for room ${roomId}`);
+                            io.to('admin-room').emit('participant-left', {
+                                roomId,
+                                participant: connection,
+                                message: leaveMessage
+                            });
 
-                       // Send Telegram notification that user left
-                       const { sendTelegramMessage } = require('./config/telegram');
-                       const time = new Date().toLocaleTimeString('en-US', { 
-                           hour12: false, 
-                           hour: '2-digit', 
-                           minute: '2-digit' 
-                       });
-                       const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})`;
-                       
-                       sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
-                           .then(() => console.log(`📱 Admin notification sent: User ${connection.name} left Room ${roomId}`))
-                           .catch(error => console.error(`❌ Failed to send leave notification:`, error));
+                            // Send Telegram notification that user left
+                            const { sendTelegramMessage } = require('./config/telegram');
+                            const time = new Date().toLocaleTimeString('en-US', { 
+                                hour12: false, 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            });
+                            const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})`;
+                            
+                            sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
+                                .then(() => console.log(`📱 Admin notification sent: User ${connection.name} left Room ${roomId}`))
+                                .catch(error => console.error(`❌ Failed to send leave notification:`, error));
+                            
+                            console.log(`✅ Participant ${connection.name} actually left room ${roomId} after grace period`);
+                        }
+                    }, 5000); // 5 second grace period
                     
-                    console.log(`✅ Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);
+                    console.log(`🔌 Participant ${connection.name} disconnected from room ${roomId} - grace period started`);
                 } else if (room && room.status === 'pending') {
                     // For pending rooms, just clean up without adding "left" message
                     console.log(`🔌 Participant ${connection.name} disconnected from pending room ${roomId} - no "left" message added`);
