@@ -878,6 +878,59 @@ io.on('connection', (socket) => {
                     message: leaveMessage
                 });
                 
+                // Send final conversation summary to Telegram
+                const { sendTelegramMessage } = require('./config/telegram');
+                const time = new Date().toLocaleTimeString('en-IN', { 
+                    timeZone: 'Asia/Kolkata',
+                    hour12: true, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                // Build conversation summary
+                let conversationSummary = '';
+                if (room.messages && room.messages.length > 0) {
+                    // Filter out welcome messages and build clean history
+                    const filteredMessages = room.messages.filter(msg => 
+                        !msg.text.includes('Welcome to the chat room') && 
+                        !msg.text.includes('You have joined the chat room')
+                    );
+                    
+                    if (filteredMessages.length > 0) {
+                        conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
+                        filteredMessages.forEach(msg => {
+                            let sender;
+                            if (msg.isAdmin) {
+                                sender = 'Rajendran';
+                            } else if (msg.sender === 'System') {
+                                sender = `[${msg.text}]`;
+                                conversationSummary += `${sender}\n`;
+                                return; // Skip the time and colon for system messages
+                            } else {
+                                sender = msg.sender;
+                            }
+                            
+                            // Format time as HH:MM AM/PM in IST
+                            const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
+                                timeZone: 'Asia/Kolkata',
+                                hour12: true, 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            });
+                            
+                            if (msg.sender !== 'System') {
+                                conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
+                            }
+                        });
+                    }
+                }
+                
+                const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})${conversationSummary}`;
+                
+                sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
+                    .then(() => console.log(`📱 Final conversation summary sent: User ${connection.name} left Room ${roomId}`))
+                    .catch(error => console.error(`❌ Failed to send final summary:`, error));
+                
                 console.log(`Participant ${connection.name} left room ${roomId}`);
             }
             
@@ -1021,19 +1074,58 @@ io.on('connection', (socket) => {
                                 message: leaveMessage
                             });
 
-                            // Send Telegram notification that user left
+                            // Send Telegram notification with full conversation summary
                             const { sendTelegramMessage } = require('./config/telegram');
-                       const time = new Date().toLocaleTimeString('en-IN', { 
-                           timeZone: 'Asia/Kolkata',
-                           hour12: true, 
-                           hour: '2-digit', 
-                           minute: '2-digit' 
-                       });
-                            const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})`;
+                            const time = new Date().toLocaleTimeString('en-IN', { 
+                                timeZone: 'Asia/Kolkata',
+                                hour12: true, 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            });
+                            
+                            // Build conversation summary
+                            let conversationSummary = '';
+                            if (currentRoom.messages && currentRoom.messages.length > 0) {
+                                // Filter out welcome messages and build clean history
+                                const filteredMessages = currentRoom.messages.filter(msg => 
+                                    !msg.text.includes('Welcome to the chat room') && 
+                                    !msg.text.includes('You have joined the chat room')
+                                );
+                                
+                                if (filteredMessages.length > 0) {
+                                    conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
+                                    filteredMessages.forEach(msg => {
+                                        let sender;
+                                        if (msg.isAdmin) {
+                                            sender = 'Rajendran';
+                                        } else if (msg.sender === 'System') {
+                                            sender = `[${msg.text}]`;
+                                            conversationSummary += `${sender}\n`;
+                                            return; // Skip the time and colon for system messages
+                                        } else {
+                                            sender = msg.sender;
+                                        }
+                                        
+                                        // Format time as HH:MM AM/PM in IST
+                                        const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
+                                            timeZone: 'Asia/Kolkata',
+                                            hour12: true, 
+                                            hour: '2-digit', 
+                                            minute: '2-digit' 
+                                        });
+                                        
+                                        if (msg.sender !== 'System') {
+                                            conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
+                                        }
+                                    });
+                                }
+                            }
+                            
+                            const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})${conversationSummary}`;
                             
                             sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
-                                .then(() => console.log(`📱 Admin notification sent: User ${connection.name} left Room ${roomId}`))
-                                .catch(error => console.error(`❌ Failed to send leave notification:`, error));
+                                .then(() => console.log(`📱 Final conversation summary sent: User ${connection.name} left Room ${roomId}`))
+                                .catch(error => console.error(`❌ Failed to send final summary:`, error));
                             
                             console.log(`✅ Participant ${connection.name} actually left room ${roomId} after grace period`);
                         }
