@@ -27,10 +27,13 @@ async function sendTelegramMessage(message, options = {}) {
 
 // Send knock notification
 async function sendKnockNotification(participantName, roomId) {
-    const message = `🔔 <b>Someone Knocked!</b>\n\n` +
-                   `👤 <b>Name:</b> ${participantName}\n` +
-                   `🏠 <b>Room:</b> ${roomId}\n` +
-                   `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+    const time = new Date().toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    const message = `🔔 ${participantName} from Room ${roomId} (${time})\n\n` +
                    `Reply with:\n` +
                    `• <code>approve</code> - Let them in\n` +
                    `• <code>reject</code> - Reject them\n` +
@@ -52,19 +55,41 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
     // Build conversation history
     let historyText = '';
     if (chatHistory && chatHistory.length > 0) {
-        historyText = '\n\n📜 <b>Conversation History:</b>\n';
-        chatHistory.forEach(msg => {
-            const sender = msg.isAdmin ? '👨‍💼 Admin' : `👤 ${msg.sender}`;
-            const time = new Date(msg.timestamp).toLocaleTimeString();
-            historyText += `${sender} (${time}): ${msg.text}\n`;
-        });
+        // Filter out welcome messages and build clean history
+        const filteredHistory = chatHistory.filter(msg => 
+            !msg.text.includes('Welcome to the chat room') && 
+            !msg.text.includes('You have joined the chat room')
+        );
+        
+        if (filteredHistory.length > 0) {
+            historyText = '\n\n';
+            filteredHistory.forEach(msg => {
+                let sender;
+                if (msg.isAdmin) {
+                    sender = 'Rajendran';
+                } else if (msg.sender === 'System') {
+                    sender = `[${msg.text}]`;
+                    historyText += `${sender}\n`;
+                    return; // Skip the time and colon for system messages
+                } else {
+                    sender = msg.sender;
+                }
+                
+                // Format time as HH:MM (remove seconds)
+                const time = new Date(msg.timestamp).toLocaleTimeString('en-US', { 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                if (msg.sender !== 'System') {
+                    historyText += `${sender} (${time}): ${msg.text}\n`;
+                }
+            });
+        }
     }
     
-    const notification = `💬 <b>New Message</b>\n\n` +
-                        `👤 <b>From:</b> ${participantName}\n` +
-                        `🏠 <b>Room:</b> ${roomId}\n` +
-                        `📝 <b>Latest Message:</b> ${message}` +
-                        historyText + `\n\nReply to respond directly to this user.`;
+    const notification = `${participantName} from Room ${roomId}${historyText}`;
 
     const result = await sendTelegramMessage(notification);
     

@@ -1008,11 +1008,12 @@ io.on('connection', (socket) => {
 
                        // Send Telegram notification that user left
                        const { sendTelegramMessage } = require('./config/telegram');
-                       const leaveNotification = `👋 <b>User Left</b>\n\n` +
-                                               `👤 <b>Name:</b> ${connection.name}\n` +
-                                               `🏠 <b>Room:</b> ${roomId}\n` +
-                                               `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
-                                               `The user has left the conversation.`;
+                       const time = new Date().toLocaleTimeString('en-US', { 
+                           hour12: false, 
+                           hour: '2-digit', 
+                           minute: '2-digit' 
+                       });
+                       const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})`;
                        
                        sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
                            .then(() => console.log(`📱 Admin notification sent: User ${connection.name} left Room ${roomId}`))
