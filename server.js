@@ -420,21 +420,22 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                 
             case 'nudge':
                 // Send nudge message to user
-                console.log(`📱 Sending nudge to ${response.participantName} in Room ${response.roomId}`);
+                const context = response.context || response;
+                console.log(`📱 Sending nudge to ${context.participantName} in Room ${context.roomId}`);
                 
                 let targetSocket = null;
                 
-                // Try to get socket from response first (for knock responses)
-                if (response.socketId) {
-                    targetSocket = io.sockets.sockets.get(response.socketId);
+                // Try to get socket from context first (for knock responses)
+                if (context.socketId) {
+                    targetSocket = io.sockets.sockets.get(context.socketId);
                 }
                 
                 // If not found, try to find socket by participant name in active connections
                 if (!targetSocket) {
                     for (let [socketId, connection] of activeConnections) {
                         if (connection.type === 'participant' && 
-                            connection.name === response.participantName && 
-                            connection.roomId === response.roomId) {
+                            connection.name === context.participantName && 
+                            connection.roomId === context.roomId) {
                             targetSocket = io.sockets.sockets.get(socketId);
                             break;
                         }
@@ -445,16 +446,16 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                     // Send nudge as a system message to the user
                     const nudgeMessage = {
                         id: Date.now(),
-                        text: response.message,
+                        text: "Hello! I'm here and ready to help. What would you like to discuss?",
                         sender: 'System',
                         timestamp: new Date().toISOString(),
                         isAdmin: false
                     };
                     
                     targetSocket.emit('nudge-message', nudgeMessage);
-                    console.log(`👋 Nudge sent to ${response.participantName}: ${response.message}`);
+                    console.log(`👋 Nudge sent to ${context.participantName}: ${nudgeMessage.text}`);
                 } else {
-                    console.log(`⚠️ No active socket found for nudge to ${response.participantName} in Room ${response.roomId}`);
+                    console.log(`⚠️ No active socket found for nudge to ${context.participantName} in Room ${context.roomId}`);
                 }
                 break;
                 

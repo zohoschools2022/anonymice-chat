@@ -14,30 +14,82 @@ function handleTelegramMessage(message) {
     console.log('📱 Pending knocks:', Array.from(pendingKnocks.keys()));
     console.log('📱 Active contexts:', Array.from(activeRoomContexts.keys()));
     
-    // Check for global sleep commands first (work from anywhere, not just replies)
-    if (text && text.toLowerCase().startsWith('sleep ')) {
-        const sleepCommand = text.substring(6).trim();
-        if (sleepCommand === 'clear') {
-            return {
-                success: true,
-                action: 'sleep_clear',
-                message: 'Sleep time cleared'
-            };
-        } else if (sleepCommand === 'status') {
-            return {
-                success: true,
-                action: 'sleep_status',
-                message: 'Checking sleep status...'
-            };
-        } else {
-            const minutes = parseInt(sleepCommand);
-            if (!isNaN(minutes) && minutes > 0) {
+    // Check for global slash commands first (work from anywhere, not just replies)
+    if (text && text.startsWith('/')) {
+        const command = text.toLowerCase().trim();
+        
+        // Handle /nudge command - works on any message
+        if (command === '/nudge') {
+            if (message.reply_to_message) {
+                const replyToMessageId = message.reply_to_message.message_id;
+                console.log('📱 /nudge command on reply to message ID:', replyToMessageId);
+                
+                // Try to find context from any source
+                let context = null;
+                
+                // Check active message contexts first
+                context = activeRoomContexts.get(replyToMessageId);
+                if (context) {
+                    console.log('📱 Found message context for /nudge:', context);
+                    return {
+                        success: true,
+                        action: 'nudge',
+                        context: context,
+                        message: 'Nudge sent to user'
+                    };
+                }
+                
+                // Check pending knocks
+                for (let [roomId, knockContext] of pendingKnocks) {
+                    if (knockContext.replyMessageId === replyToMessageId) {
+                        console.log('📱 Found knock context for /nudge:', knockContext);
+                        return {
+                            success: true,
+                            action: 'nudge',
+                            context: knockContext,
+                            message: 'Nudge sent to user'
+                        };
+                    }
+                }
+                
+                // If no context found, return error
+                return {
+                    success: false,
+                    message: 'Could not find room context for this message. Make sure you are replying to a message from an active conversation.'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: 'Please reply to a message from the conversation you want to nudge.'
+                };
+            }
+        }
+        
+        // Handle sleep commands
+        if (text.toLowerCase().startsWith('sleep ')) {
+            const sleepCommand = text.substring(6).trim();
+            if (sleepCommand === 'clear') {
                 return {
                     success: true,
-                    action: 'sleep_set',
-                    minutes: minutes,
-                    message: `Sleep time set for ${minutes} minutes`
+                    action: 'sleep_clear',
+                    message: 'Sleep time cleared'
                 };
+            } else if (sleepCommand === 'status') {
+                return {
+                    success: true,
+                    action: 'sleep_status',
+                    message: 'Checking sleep status...'
+                };
+            } else {
+                const minutes = parseInt(sleepCommand);
+                if (!isNaN(minutes) && minutes > 0) {
+                    return {
+                        success: true,
+                        action: 'sleep_set',
+                        minutes: minutes,
+                        message: `Sleep time set for ${minutes} minutes`
+                    };
+                }
             }
         }
     }
@@ -124,15 +176,6 @@ function handleKnockResponse(response, context) {
                 message: 'Admin is away, try later'
             };
             
-        case 'nudge':
-            return {
-                success: true,
-                action: 'nudge',
-                roomId,
-                participantName,
-                socketId,
-                message: 'Hello! I\'m here and ready to help. What would you like to discuss?'
-            };
             
         default:
             // Treat as custom message for knock response
