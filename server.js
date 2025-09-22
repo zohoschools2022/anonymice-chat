@@ -365,6 +365,9 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
             case 'away':
             case 'custom':
                 // Reject the knock with message
+                console.log(`📱 Attempting to reject knock for ${response.participantName} in Room ${response.roomId}`);
+                console.log(`📱 Socket ID: ${response.socketId}`);
+                
                 if (response.socketId) {
                     const socket = io.sockets.sockets.get(response.socketId);
                     if (socket) {
@@ -373,7 +376,19 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                             roomId: response.roomId 
                         });
                         console.log(`❌ Rejected knock for ${response.participantName}: ${response.message}`);
+                    } else {
+                        console.log(`⚠️ Socket ${response.socketId} not found - user may have disconnected`);
+                        // Clean up the pending knock and room since socket is not available
+                        clearActiveRoomContext(response.roomId);
+                        // Also clean up the room from chatRooms
+                        const room = chatRooms.get(response.roomId);
+                        if (room && room.status === 'pending') {
+                            chatRooms.delete(response.roomId);
+                            console.log(`🗑️ Cleaned up pending room ${response.roomId} after socket disconnect`);
+                        }
                     }
+                } else {
+                    console.log(`⚠️ No socket ID provided for rejection`);
                 }
                 break;
                 
