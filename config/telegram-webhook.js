@@ -2,7 +2,7 @@
 const axios = require('axios');
 
 // Store active room contexts for responses (queue system)
-let activeRoomContexts = new Map(); // Map of chatId -> context
+let activeRoomContexts = new Map(); // Map of replyMessageId -> context for message responses
 let pendingKnocks = new Map(); // Map of roomId -> context for knock responses
 
 // Handle incoming Telegram messages
@@ -29,14 +29,12 @@ function handleTelegramMessage(message) {
             }
         }
         
-        // Check active message contexts
+        // Check active message contexts using reply message ID as key
         console.log('📱 Searching active message contexts for reply message ID:', replyToMessageId);
-        for (let [id, context] of activeRoomContexts) {
-            console.log('📱 Checking message context:', context.replyMessageId, 'vs', replyToMessageId);
-            if (context.replyMessageId === replyToMessageId) {
-                console.log('📱 Found message context for reply:', context);
-                return handleMessageResponse(text, context);
-            }
+        const messageContext = activeRoomContexts.get(replyToMessageId);
+        if (messageContext) {
+            console.log('📱 Found message context for reply:', messageContext);
+            return handleMessageResponse(text, messageContext);
         }
     }
     
@@ -143,7 +141,7 @@ function handleMessageResponse(response, context) {
     };
 }
 
-// Set active room context for knock
+// Set active room context for knock or message
 function setActiveRoomContext(context) {
     if (context.type === 'knock') {
         pendingKnocks.set(context.roomId, context);
@@ -151,9 +149,10 @@ function setActiveRoomContext(context) {
         console.log('📱 Reply message ID stored:', context.replyMessageId);
         console.log('📱 Context details:', JSON.stringify(context, null, 2));
     } else if (context.type === 'message') {
-        activeRoomContexts.set(context.roomId, context);
-        console.log('📱 Message context set for room:', context.roomId);
-        console.log('📱 Reply message ID stored:', context.replyMessageId);
+        // Use reply message ID as key to prevent overwriting
+        activeRoomContexts.set(context.replyMessageId, context);
+        console.log('📱 Message context set with reply ID:', context.replyMessageId);
+        console.log('📱 Room ID:', context.roomId);
         console.log('📱 Context details:', JSON.stringify(context, null, 2));
     }
 }
@@ -162,7 +161,12 @@ function setActiveRoomContext(context) {
 function clearActiveRoomContext(roomId = null) {
     if (roomId) {
         pendingKnocks.delete(roomId);
-        activeRoomContexts.delete(roomId);
+        // Clear all message contexts for this room
+        for (let [replyId, context] of activeRoomContexts) {
+            if (context.roomId === roomId) {
+                activeRoomContexts.delete(replyId);
+            }
+        }
         console.log('📱 Context cleared for room:', roomId);
     } else {
         pendingKnocks.clear();
