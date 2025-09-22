@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 require('dotenv').config();
 
-// Telegram integration
+// Admin notification integration
 const { sendKnockNotification, sendUserMessageNotification } = require('./config/telegram');
 const { handleTelegramMessage, setActiveRoomContext, clearActiveRoomContext } = require('./config/telegram-webhook');
 const { createBotForRoom, sendMessageWithBot, deleteBotForRoom, getBotInfo } = require('./config/bot-factory');
@@ -270,15 +270,15 @@ app.get('/knock', (req, res) => {
 // Debug endpoint to check environment variables
 app.get('/debug-env', (req, res) => {
     res.json({
-        telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Missing',
-        telegram_chat_id: process.env.TELEGRAM_CHAT_ID ? 'Set' : 'Missing',
+        admin_bot_token: process.env.TELEGRAM_BOT_TOKEN ? 'Set' : 'Missing',
+        admin_chat_id: process.env.TELEGRAM_CHAT_ID ? 'Set' : 'Missing',
         bot_token_preview: process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.substring(0, 10) + '...' : 'Not set',
         chat_id_value: process.env.TELEGRAM_CHAT_ID || 'Not set'
     });
 });
 
-// Telegram webhook endpoint for all conversations (unlimited)
-app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) => {
+// Admin notification webhook endpoint for all conversations (unlimited)
+app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, res) => {
     const clientIP = getClientIP(req);
     
     // Validate webhook request
@@ -296,16 +296,16 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) 
     }
     
     const message = req.body.message;
-    console.log(`📱 Received message from ${clientIP}:`, message.text);
+    console.log(`📱 Received admin notification from ${clientIP}:`, message.text);
     console.log(`📱 Message object:`, JSON.stringify(message, null, 2));
     
     // Handle the message using conversation tracking
     const response = handleTelegramMessage(message);
-    console.log(`📱 Response from handleTelegramMessage:`, JSON.stringify(response, null, 2));
+    console.log(`📱 Response from admin notification handler:`, JSON.stringify(response, null, 2));
     
     // Process the response if it's successful
     if (response && response.success) {
-        console.log('📱 Processing Telegram response:', response);
+        console.log('📱 Processing admin response:', response);
         
         // Process the response based on action
         switch (response.action) {
@@ -429,8 +429,8 @@ app.post('/telegram-webhook', express.json({ limit: '10kb' }), async (req, res) 
                     break;
         }
     } else if (response && !response.success) {
-        // Send helpful message back to Telegram if user didn't reply properly
-        console.log('📱 Sending helpful message to user:', response.message);
+        // Send helpful message back to admin if user didn't reply properly
+        console.log('📱 Sending helpful message to admin:', response.message);
         try {
             const { sendTelegramMessage } = require('./config/telegram');
             await sendTelegramMessage(response.message, process.env.TELEGRAM_CHAT_ID);
@@ -627,9 +627,9 @@ io.on('connection', (socket) => {
                         replyMessageId: result.messageId,
                         botInfo: result.botInfo
                     });
-                    console.log('📱 Telegram knock notification sent with dedicated bot');
+                    console.log('📱 Admin knock notification sent with dedicated bot');
                 } else {
-                    console.error('❌ Failed to send Telegram knock notification');
+                    console.error('❌ Failed to send admin knock notification');
                 }
             }).catch(error => {
                 console.error('❌ Failed to create bot or send notification:', error);
@@ -652,9 +652,9 @@ io.on('connection', (socket) => {
             
             // Check if service is enabled
             if (!serviceEnabled) {
-                console.log('🚫 Knock received but service is disabled - waiting for Telegram approval');
+                console.log('🚫 Knock received but service is disabled - waiting for admin approval');
                 socket.emit('knock-pending', { 
-                    message: "Knock received! Waiting for admin approval via Telegram...",
+                    message: "Knock received! Waiting for admin approval...",
                     roomId: roomId
                 });
                 return;
@@ -801,12 +801,12 @@ io.on('connection', (socket) => {
                             participantName: connection.name,
                             replyMessageId: result.messageId
                         });
-                        console.log('📱 Telegram message notification sent with message ID:', result.messageId);
+                        console.log('📱 Admin message notification sent with message ID:', result.messageId);
                     } else {
-                        console.error('❌ Failed to send Telegram message notification');
+                        console.error('❌ Failed to send admin message notification');
                     }
                 }).catch(error => {
-                    console.error('❌ Failed to send Telegram message notification:', error);
+                    console.error('❌ Failed to send admin message notification:', error);
                 });
             }
         }
@@ -1015,7 +1015,7 @@ io.on('connection', (socket) => {
                                                `The user has left the conversation.`;
                        
                        sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
-                           .then(() => console.log(`📱 Telegram notification sent: User ${connection.name} left Room ${roomId}`))
+                           .then(() => console.log(`📱 Admin notification sent: User ${connection.name} left Room ${roomId}`))
                            .catch(error => console.error(`❌ Failed to send leave notification:`, error));
                     
                     console.log(`✅ Participant ${connection.name} disconnected from room ${roomId} - room marked as 'left'`);

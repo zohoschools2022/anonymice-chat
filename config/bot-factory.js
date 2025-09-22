@@ -47,7 +47,7 @@ async function createBotForRoom(roomId, participantName) {
 async function setBotWebhook(botToken, roomId) {
     try {
         // Use a single webhook endpoint for all conversations
-        const webhookUrl = `https://web-production-8d6b4.up.railway.app/telegram-webhook`;
+        const webhookUrl = `https://web-production-8d6b4.up.railway.app/admin-notifications`;
         
         const response = await axios.post(`https://api.telegram.org/bot${botToken}/setWebhook`, {
             url: webhookUrl
