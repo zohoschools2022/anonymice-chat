@@ -106,6 +106,33 @@ function handleKnockResponse(response, context) {
             };
             
         default:
+            // Check for sleep commands
+            if (response.toLowerCase().startsWith('sleep ')) {
+                const sleepCommand = response.substring(6).trim();
+                if (sleepCommand === 'clear') {
+                    return {
+                        success: true,
+                        action: 'sleep_clear',
+                        message: 'Sleep time cleared'
+                    };
+                } else if (sleepCommand === 'status') {
+                    return {
+                        success: true,
+                        action: 'sleep_status',
+                        message: 'Checking sleep status...'
+                    };
+                } else {
+                    const minutes = parseInt(sleepCommand);
+                    if (!isNaN(minutes) && minutes > 0) {
+                        return {
+                            success: true,
+                            action: 'sleep_set',
+                            minutes: minutes,
+                            message: `Sleep time set for ${minutes} minutes`
+                        };
+                    }
+                }
+            }
             return {
                 success: true,
                 action: 'custom',

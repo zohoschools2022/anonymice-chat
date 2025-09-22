@@ -493,6 +493,39 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         console.log(`🔒 Room ${response.roomId} closed by admin`);
                     }
                     break;
+                    
+                case 'sleep_set':
+                    // Set sleep time
+                    if (response.minutes && response.minutes > 0) {
+                        serviceSleepUntil = new Date(Date.now() + (response.minutes * 60 * 1000));
+                        console.log(`😴 Sleep time set for ${response.minutes} minutes until ${serviceSleepUntil.toLocaleString()}`);
+                        
+                        // Send confirmation to Telegram
+                        const { sendTelegramMessage } = require('./config/telegram');
+                        sendTelegramMessage(`😴 Sleep mode activated for ${response.minutes} minutes.\n⏰ Will resume at ${serviceSleepUntil.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}`);
+                    }
+                    break;
+                    
+                case 'sleep_clear':
+                    // Clear sleep time
+                    serviceSleepUntil = null;
+                    console.log('😴 Sleep time cleared - service is now active');
+                    
+                    // Send confirmation to Telegram
+                    const { sendTelegramMessage } = require('./config/telegram');
+                    sendTelegramMessage('😴 Sleep mode cleared - service is now active!');
+                    break;
+                    
+                case 'sleep_status':
+                    // Check sleep status
+                    const { sendTelegramMessage } = require('./config/telegram');
+                    if (serviceSleepUntil) {
+                        const remainingMinutes = Math.ceil((serviceSleepUntil - new Date()) / (60 * 1000));
+                        sendTelegramMessage(`😴 Sleep mode is active.\n⏰ ${remainingMinutes} minutes remaining until ${serviceSleepUntil.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}`);
+                    } else {
+                        sendTelegramMessage('😴 Sleep mode is not active - service is running normally.');
+                    }
+                    break;
         }
     } else if (response && !response.success) {
         // Send helpful message back to admin if user didn't reply properly
@@ -705,6 +738,9 @@ io.on('connection', (socket) => {
                                    `• <code>reject</code> - Reject them\n` +
                                    `• <code>away</code> - Send "away" message\n` +
                                    `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
+                                   `• <code>sleep 60</code> - Set sleep for 60 minutes\n` +
+                                   `• <code>sleep clear</code> - Clear sleep time\n` +
+                                   `• <code>sleep status</code> - Check sleep status\n` +
                                    `• Any other text - Custom message`;
                 
                 return sendMessageWithBot(roomId, knockMessage);
