@@ -14,6 +14,34 @@ function handleTelegramMessage(message) {
     console.log('📱 Pending knocks:', Array.from(pendingKnocks.keys()));
     console.log('📱 Active contexts:', Array.from(activeRoomContexts.keys()));
     
+    // Check for global sleep commands first (work from anywhere, not just replies)
+    if (text && text.toLowerCase().startsWith('sleep ')) {
+        const sleepCommand = text.substring(6).trim();
+        if (sleepCommand === 'clear') {
+            return {
+                success: true,
+                action: 'sleep_clear',
+                message: 'Sleep time cleared'
+            };
+        } else if (sleepCommand === 'status') {
+            return {
+                success: true,
+                action: 'sleep_status',
+                message: 'Checking sleep status...'
+            };
+        } else {
+            const minutes = parseInt(sleepCommand);
+            if (!isNaN(minutes) && minutes > 0) {
+                return {
+                    success: true,
+                    action: 'sleep_set',
+                    minutes: minutes,
+                    message: `Sleep time set for ${minutes} minutes`
+                };
+            }
+        }
+    }
+    
     // Check if this is a reply to a specific message
     if (message.reply_to_message) {
         const replyToMessageId = message.reply_to_message.message_id;
@@ -106,35 +134,7 @@ function handleKnockResponse(response, context) {
             };
             
         default:
-            // Check for sleep commands first
-            if (response.toLowerCase().startsWith('sleep ')) {
-                const sleepCommand = response.substring(6).trim();
-                if (sleepCommand === 'clear') {
-                    return {
-                        success: true,
-                        action: 'sleep_clear',
-                        message: 'Sleep time cleared'
-                    };
-                } else if (sleepCommand === 'status') {
-                    return {
-                        success: true,
-                        action: 'sleep_status',
-                        message: 'Checking sleep status...'
-                    };
-                } else {
-                    const minutes = parseInt(sleepCommand);
-                    if (!isNaN(minutes) && minutes > 0) {
-                        return {
-                            success: true,
-                            action: 'sleep_set',
-                            minutes: minutes,
-                            message: `Sleep time set for ${minutes} minutes`
-                        };
-                    }
-                }
-            }
-            
-            // If not a sleep command, treat as custom message for knock response
+            // Treat as custom message for knock response
             return {
                 success: true,
                 action: 'custom',
@@ -149,34 +149,6 @@ function handleKnockResponse(response, context) {
 // Handle message response
 function handleMessageResponse(response, context) {
     const { roomId, participantName } = context;
-    
-    // Check for sleep commands first
-    if (response.toLowerCase().startsWith('sleep ')) {
-        const sleepCommand = response.substring(6).trim();
-        if (sleepCommand === 'clear') {
-            return {
-                success: true,
-                action: 'sleep_clear',
-                message: 'Sleep time cleared'
-            };
-        } else if (sleepCommand === 'status') {
-            return {
-                success: true,
-                action: 'sleep_status',
-                message: 'Checking sleep status...'
-            };
-        } else {
-            const minutes = parseInt(sleepCommand);
-            if (!isNaN(minutes) && minutes > 0) {
-                return {
-                    success: true,
-                    action: 'sleep_set',
-                    minutes: minutes,
-                    message: `Sleep time set for ${minutes} minutes`
-                };
-            }
-        }
-    }
     
     // Check for admin close command
     if (response.toUpperCase().trim() === 'XXCLOSEXX') {
