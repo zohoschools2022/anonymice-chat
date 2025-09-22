@@ -150,6 +150,17 @@ function handleKnockResponse(response, context) {
 function handleMessageResponse(response, context) {
     const { roomId, participantName } = context;
     
+    // Check for nudge command
+    if (response.toLowerCase().trim() === 'nudge') {
+        return {
+            success: true,
+            action: 'nudge',
+            roomId,
+            participantName,
+            message: 'Hello! I\'m here and ready to help. What would you like to discuss?'
+        };
+    }
+    
     // Check for admin close command
     if (response.toUpperCase().trim() === 'XXCLOSEXX') {
         return {
