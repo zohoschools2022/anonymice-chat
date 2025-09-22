@@ -97,6 +97,16 @@ function handleKnockResponse(response, context) {
                 message: 'Admin is away, try later'
             };
             
+        case 'nudge':
+            return {
+                success: true,
+                action: 'nudge',
+                roomId,
+                participantName,
+                socketId,
+                message: 'Hello! I\'m here and ready to help. What would you like to discuss?'
+            };
+            
         default:
             return {
                 success: true,

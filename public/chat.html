@@ -519,6 +519,12 @@
                 }
             }
         });
+
+        // Handle nudge messages from admin
+        socket.on('nudge-message', (message) => {
+            addMessage(message);
+            playMessageSound();
+        });
     
         socket.on('disconnect', () => {
             addSystemMessage('Connection lost. Please refresh the page.');

@@ -389,6 +389,32 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                 }
                 break;
                 
+            case 'nudge':
+                // Send nudge message to user
+                console.log(`📱 Sending nudge to ${response.participantName} in Room ${response.roomId}`);
+                
+                if (response.socketId) {
+                    const socket = io.sockets.sockets.get(response.socketId);
+                    if (socket) {
+                        // Send nudge as a system message to the user
+                        const nudgeMessage = {
+                            id: Date.now(),
+                            text: response.message,
+                            sender: 'System',
+                            timestamp: new Date().toISOString(),
+                            isAdmin: false
+                        };
+                        
+                        socket.emit('nudge-message', nudgeMessage);
+                        console.log(`👋 Nudge sent to ${response.participantName}: ${response.message}`);
+                    } else {
+                        console.log(`⚠️ Socket ${response.socketId} not found for nudge - user may have disconnected`);
+                    }
+                } else {
+                    console.log(`⚠️ No socket ID provided for nudge`);
+                }
+                break;
+                
                 case 'reply':
                     // Send admin response to user
                     const room = chatRooms.get(response.roomId);
@@ -637,6 +663,7 @@ io.on('connection', (socket) => {
                                    `• <code>approve</code> - Let them in\n` +
                                    `• <code>reject</code> - Reject them\n` +
                                    `• <code>away</code> - Send "away" message\n` +
+                                   `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
                                    `• Any other text - Custom message`;
                 
                 return sendMessageWithBot(roomId, knockMessage);

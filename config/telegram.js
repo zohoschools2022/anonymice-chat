@@ -39,6 +39,7 @@ async function sendKnockNotification(participantName, roomId) {
                    `• <code>approve</code> - Let them in\n` +
                    `• <code>reject</code> - Reject them\n` +
                    `• <code>away</code> - Send "away" message\n` +
+                   `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
                    `• Any other text - Custom message`;
 
     const result = await sendTelegramMessage(message);
