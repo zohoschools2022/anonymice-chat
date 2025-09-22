@@ -49,6 +49,7 @@ function handleTelegramMessage(message) {
         
         // Find context by reply message ID
         console.log('📱 Searching pending knocks for reply message ID:', replyToMessageId);
+        console.log('📱 Available pending knocks:', Array.from(pendingKnocks.entries()));
         for (let [roomId, context] of pendingKnocks) {
             console.log('📱 Checking pending knock context:', context.replyMessageId, 'vs', replyToMessageId);
             if (context.replyMessageId === replyToMessageId) {
