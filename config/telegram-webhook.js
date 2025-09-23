@@ -65,6 +65,48 @@ function handleTelegramMessage(message) {
             }
         }
         
+        // Handle /kick command - works on any replied message
+        if (command.startsWith('/kick')) {
+            if (message.reply_to_message) {
+                const replyToMessageId = message.reply_to_message.message_id;
+                console.log('📱 /kick command on reply to message ID:', replyToMessageId);
+                
+                // Try to find context from any source
+                let context = activeRoomContexts.get(replyToMessageId);
+                if (context) {
+                    console.log('📱 Found message context for /kick:', context);
+                    return {
+                        success: true,
+                        action: 'kick',
+                        context: context,
+                        message: 'Conversation closed by admin'
+                    };
+                }
+                
+                for (let [roomId, knockContext] of pendingKnocks) {
+                    if (knockContext.replyMessageId === replyToMessageId) {
+                        console.log('📱 Found knock context for /kick:', knockContext);
+                        return {
+                            success: true,
+                            action: 'kick',
+                            context: knockContext,
+                            message: 'Conversation closed by admin'
+                        };
+                    }
+                }
+                
+                return {
+                    success: false,
+                    message: 'Could not find room context for this message. Please reply to a message in the conversation you want to close.'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: 'Please reply to a message from the conversation you want to close.'
+                };
+            }
+        }
+        
         // Handle sleep commands
         if (text.toLowerCase().startsWith('sleep ')) {
             const sleepCommand = text.substring(6).trim();

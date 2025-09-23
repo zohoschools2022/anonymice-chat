@@ -484,31 +484,72 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                     break;
                     
                 case 'close':
-                    // Close the conversation
-                    const roomToClose = chatRooms.get(response.roomId);
+                case 'kick': {
+                    // Close the conversation (explicitly kicked by admin)
+                    const ctx = response.context || response;
+                    const roomToClose = chatRooms.get(ctx.roomId);
                     if (roomToClose) {
-                        // Send close message to user
-                        const closeMessage = {
+                        // Send polite bye message to user
+                        const byeMessage = {
                             id: Date.now(),
-                            text: "The admin has closed this conversation. Thank you for chatting!",
+                            text: "The admin is not able to continue this conversation any longer. Thank you for chatting!",
                             sender: 'System',
                             timestamp: new Date().toISOString(),
                             isAdmin: false
                         };
-                        
-                        roomToClose.messages.push(closeMessage);
-                        io.to(`room-${response.roomId}`).emit('new-message', closeMessage);
-                        
+                        roomToClose.messages.push(byeMessage);
+                        io.to(`room-${ctx.roomId}`).emit('new-message', byeMessage);
+
+                        // Build and send final summary to Telegram (same as user-leave flow)
+                        const { sendTelegramMessage } = require('./config/telegram');
+                        const time = new Date().toLocaleTimeString('en-IN', { 
+                            timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit' 
+                        });
+
+                        let conversationSummary = '';
+                        if (roomToClose.messages && roomToClose.messages.length > 0) {
+                            const filteredMessages = roomToClose.messages.filter(msg => 
+                                !msg.text.includes('Welcome to the chat room') && 
+                                !msg.text.includes('You have joined the chat room')
+                            );
+                            if (filteredMessages.length > 0) {
+                                conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
+                                filteredMessages.forEach(msg => {
+                                    let sender;
+                                    if (msg.isAdmin) {
+                                        sender = 'Rajendran';
+                                    } else if (msg.sender === 'System') {
+                                        sender = `[${msg.text}]`;
+                                        conversationSummary += `${sender}\n`;
+                                        return;
+                                    } else {
+                                        sender = msg.sender;
+                                    }
+                                    const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
+                                        timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit' 
+                                    });
+                                    if (msg.sender !== 'System') {
+                                        conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
+                                    }
+                                });
+                            }
+                        }
+                        const participantName = roomToClose.participant?.name || 'Unknown';
+                        const leaveNotification = `👋 ${participantName} from Room ${ctx.roomId} was removed by admin (${time})${conversationSummary}`;
+                        sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
+                            .then(() => console.log(`📱 Final conversation summary sent for kicked user ${participantName} Room ${ctx.roomId}`))
+                            .catch(error => console.error(`❌ Failed to send final summary (kick):`, error));
+
                         // Notify admin interface
-                        io.to('admin-room').emit('room-closed', { roomId: response.roomId });
-                        
+                        io.to('admin-room').emit('room-closed', { roomId: ctx.roomId });
+
                         // Clean up the room
-                        chatRooms.delete(response.roomId);
-                        deleteBotForRoom(response.roomId);
-                        
-                        console.log(`🔒 Room ${response.roomId} closed by admin`);
+                        chatRooms.delete(ctx.roomId);
+                        deleteBotForRoom(ctx.roomId);
+                        console.log(`🔒 Room ${ctx.roomId} closed by admin (kick)`);
                     }
                     break;
+                }
                     
                 case 'sleep_set':
                     // Set sleep time
