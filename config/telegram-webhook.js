@@ -108,8 +108,8 @@ function handleTelegramMessage(message) {
         }
         
         // Handle sleep commands
-        if (text.toLowerCase().startsWith('sleep ')) {
-            const sleepCommand = text.substring(6).trim();
+        if (command.startsWith('/sleep')) {
+            const sleepCommand = text.substring('/sleep'.length).trim();
             if (sleepCommand === 'clear') {
                 return {
                     success: true,
@@ -133,6 +133,29 @@ function handleTelegramMessage(message) {
                     };
                 }
             }
+        }
+
+        // Handle /approve, /reject, /away (must reply to a knock notification)
+        if (command === '/approve' || command === '/reject' || command === '/away') {
+            if (!message.reply_to_message) {
+                return { success: false, message: 'Please reply to a knock notification with this command.' };
+            }
+            const replyToMessageId = message.reply_to_message.message_id;
+            // Only consider pending knocks for these commands
+            for (let [roomId, knockContext] of pendingKnocks) {
+                if (knockContext.replyMessageId === replyToMessageId) {
+                    const action = command.slice(1); // remove leading '/'
+                    return {
+                        success: true,
+                        action,
+                        roomId,
+                        participantName: knockContext.participantName,
+                        socketId: knockContext.socketId,
+                        message: action === 'approve' ? 'User approved and entering chat room' : (action === 'reject' ? 'User rejected' : 'Admin is away, try later')
+                    };
+                }
+            }
+            return { success: false, message: 'Could not find knock context. Please reply directly to the knock notification.' };
         }
     }
     
@@ -187,77 +210,21 @@ function handleTelegramMessage(message) {
 function handleKnockResponse(response, context) {
     const { roomId, participantName, socketId } = context;
     
-    switch (response.toLowerCase().trim()) {
-        case 'approve':
-            return {
-                success: true,
-                action: 'approve',
-                roomId,
-                participantName,
-                socketId,
-                message: 'User approved and entering chat room'
-            };
-            
-        case 'reject':
-            return {
-                success: true,
-                action: 'reject',
-                roomId,
-                participantName,
-                socketId,
-                message: 'User rejected'
-            };
-            
-        case 'away':
-            return {
-                success: true,
-                action: 'away',
-                roomId,
-                participantName,
-                socketId,
-                message: 'Admin is away, try later'
-            };
-            
-            
-        default:
-            // Treat as custom message for knock response
-            return {
-                success: true,
-                action: 'custom',
-                roomId,
-                participantName,
-                socketId,
-                message: response
-            };
-    }
+    // For non-slash text on knocks, treat as custom message back to user
+    return {
+        success: true,
+        action: 'custom',
+        roomId,
+        participantName,
+        socketId,
+        message: response
+    };
 }
 
 // Handle message response
 function handleMessageResponse(response, context) {
     const { roomId, participantName } = context;
-    
-    // Check for nudge command
-    if (response.toLowerCase().trim() === 'nudge') {
-        return {
-            success: true,
-            action: 'nudge',
-            roomId,
-            participantName,
-            message: 'Hello! I\'m here and ready to help. What would you like to discuss?'
-        };
-    }
-    
-    // Check for admin close command
-    if (response.toUpperCase().trim() === 'XXCLOSEXX') {
-        return {
-            success: true,
-            action: 'close',
-            roomId,
-            participantName,
-            message: 'Conversation closed by admin'
-        };
-    }
-    
+    // For non-slash text in active chats, treat as regular reply to user
     return {
         success: true,
         action: 'reply',
