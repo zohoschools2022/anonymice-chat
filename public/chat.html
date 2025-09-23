@@ -526,9 +526,9 @@
             playMessageSound();
         });
         
-        // Admin typing indicator
-        socket.on('admin-typing', (data) => {
-            showTypingIndicator(data.admin || 'Rajendran');
+        // Admin presence indicator (online/away) events
+        socket.on('admin-presence', (data) => {
+            updatePresenceIndicator(data.status, data.admin || 'Rajendran');
         });
     
         socket.on('disconnect', () => {
@@ -575,39 +575,18 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // Typing indicator helpers
-        let typingTimeoutId = null;
-        function showTypingIndicator(adminName) {
-            hideTypingIndicator();
-            const indicator = document.createElement('div');
-            indicator.id = 'typing-indicator';
-            indicator.style.cssText = 'margin: 6px 0; color: #6b7280; font-size: 12px; display: flex; align-items: center; gap: 6px;';
-            indicator.innerHTML = `
-                <span>${adminName} is typing</span>
-                <span class="dots" style="display:inline-block; width: 20px; text-align:left;">...</span>
-            `;
-            messagesDiv.appendChild(indicator);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            // Simple animated dots
-            let step = 0;
-            const dotsEl = indicator.querySelector('.dots');
-            typingTimeoutId = setInterval(() => {
-                step = (step + 1) % 4;
-                dotsEl.textContent = '.'.repeat(step);
-            }, 500);
-
-            // Auto-hide after 6 seconds
-            setTimeout(hideTypingIndicator, 6000);
-        }
-
-        function hideTypingIndicator() {
-            if (typingTimeoutId) {
-                clearInterval(typingTimeoutId);
-                typingTimeoutId = null;
+        // Presence indicator helpers
+        function updatePresenceIndicator(status, adminName) {
+            let el = document.getElementById('presence-indicator');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'presence-indicator';
+                el.style.cssText = 'margin: 6px 0; color: #6b7280; font-size: 12px; display: flex; align-items: center; gap: 6px;';
+                messagesDiv.appendChild(el);
             }
-            const existing = document.getElementById('typing-indicator');
-            if (existing) existing.remove();
+            const emoji = status === 'online' ? '🟢' : '😴';
+            const text = status === 'online' ? `${adminName} is online` : `${adminName} is away`;
+            el.textContent = `${emoji} ${text}`;
         }
     
         function addSystemMessage(text) {

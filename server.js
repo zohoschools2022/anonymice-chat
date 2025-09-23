@@ -329,6 +329,10 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
     
     // Handle the message using conversation tracking
     const response = handleTelegramMessage(message);
+    // Any admin message implies presence online; broadcast to active rooms
+    for (let [roomId, room] of chatRooms) {
+        io.to(`room-${roomId}`).emit('admin-presence', { status: 'online', admin: ADMIN_NAME });
+    }
     console.log(`📱 Response from admin notification handler:`, JSON.stringify(response, null, 2));
     
     // Process the response if it's successful
@@ -437,13 +441,7 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                 break;
             }
 
-            case 'typing': {
-                const ctx = response.context || response;
-                // Broadcast a typing indicator to the room
-                io.to(`room-${ctx.roomId}`).emit('admin-typing', { roomId: ctx.roomId, admin: ADMIN_NAME });
-                console.log(`⌨️ Admin typing indicator sent to room-${ctx.roomId}`);
-                break;
-            }
+            // (removed) typing indicator case
                 
                 case 'reply':
                     // Send admin response to user
@@ -537,7 +535,7 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                     break;
                 }
                     
-                case 'sleep_set':
+            case 'sleep_set':
                     // Set sleep time
                     if (response.minutes && response.minutes > 0) {
                         serviceSleepUntil = new Date(Date.now() + (response.minutes * 60 * 1000));
@@ -545,16 +543,26 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         
                         // Send confirmation to Telegram
                         sendTelegramMessage(`😴 Sleep mode activated for ${response.minutes} minutes.\n⏰ Will resume at ${serviceSleepUntil.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}`);
+                    // Broadcast admin presence as away
+                    io.to('admin-room').emit('admin-presence', { status: 'away', admin: ADMIN_NAME });
+                    for (let [roomId, room] of chatRooms) {
+                        io.to(`room-${roomId}`).emit('admin-presence', { status: 'away', admin: ADMIN_NAME });
+                    }
                     }
                     break;
                     
-                case 'sleep_clear':
+            case 'sleep_clear':
                     // Clear sleep time
                     serviceSleepUntil = null;
                     console.log('😴 Sleep time cleared - service is now active');
                     
                     // Send confirmation to Telegram
                     sendTelegramMessage('😴 Sleep mode cleared - service is now active!');
+                // Broadcast admin presence as online
+                io.to('admin-room').emit('admin-presence', { status: 'online', admin: ADMIN_NAME });
+                for (let [roomId, room] of chatRooms) {
+                    io.to(`room-${roomId}`).emit('admin-presence', { status: 'online', admin: ADMIN_NAME });
+                }
                     break;
                     
                 case 'sleep_status':
