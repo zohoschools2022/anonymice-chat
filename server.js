@@ -418,46 +418,24 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                 }
                 break;
                 
-            case 'nudge':
-                // Send nudge message to user
+            case 'nudge': {
+                // Send nudge message to everyone in the room to ensure delivery even if user hasn't sent a message yet
                 const context = response.context || response;
-                console.log(`📱 Sending nudge to ${context.participantName} in Room ${context.roomId}`);
-                
-                let targetSocket = null;
-                
-                // Try to get socket from context first (for knock responses)
-                if (context.socketId) {
-                    targetSocket = io.sockets.sockets.get(context.socketId);
-                }
-                
-                // If not found, try to find socket by participant name in active connections
-                if (!targetSocket) {
-                    for (let [socketId, connection] of activeConnections) {
-                        if (connection.type === 'participant' && 
-                            connection.name === context.participantName && 
-                            connection.roomId === context.roomId) {
-                            targetSocket = io.sockets.sockets.get(socketId);
-                            break;
-                        }
-                    }
-                }
-                
-                if (targetSocket) {
-                    // Send nudge as a system message to the user
-                    const nudgeMessage = {
-                        id: Date.now(),
-                        text: "Hello! I'm here and ready to help. What would you like to discuss?",
-                        sender: 'System',
-                        timestamp: new Date().toISOString(),
-                        isAdmin: false
-                    };
-                    
-                    targetSocket.emit('nudge-message', nudgeMessage);
-                    console.log(`👋 Nudge sent to ${context.participantName}: ${nudgeMessage.text}`);
-                } else {
-                    console.log(`⚠️ No active socket found for nudge to ${context.participantName} in Room ${context.roomId}`);
-                }
+                console.log(`📱 Sending nudge to Room ${context.roomId} (participant: ${context.participantName})`);
+
+                const nudgeMessage = {
+                    id: Date.now(),
+                    text: "Hello! I'm here and ready to help. What would you like to discuss?",
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false
+                };
+
+                // Broadcast to the room
+                io.to(`room-${context.roomId}`).emit('nudge-message', nudgeMessage);
+                console.log(`👋 Nudge broadcast to room-${context.roomId}: ${nudgeMessage.text}`);
                 break;
+            }
                 
                 case 'reply':
                     // Send admin response to user
