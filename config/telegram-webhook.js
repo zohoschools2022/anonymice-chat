@@ -135,6 +135,48 @@ function handleTelegramMessage(message) {
             }
         }
 
+        // Handle /typing command - works on any replied message
+        if (command === '/typing') {
+            if (message.reply_to_message) {
+                const replyToMessageId = message.reply_to_message.message_id;
+                console.log('📱 /typing command on reply to message ID:', replyToMessageId);
+                
+                // Try to find context from any source
+                let context = activeRoomContexts.get(replyToMessageId);
+                if (context) {
+                    console.log('📱 Found message context for /typing:', context);
+                    return {
+                        success: true,
+                        action: 'typing',
+                        context: context,
+                        message: 'Typing indicator triggered'
+                    };
+                }
+                
+                for (let [roomId, knockContext] of pendingKnocks) {
+                    if (knockContext.replyMessageId === replyToMessageId) {
+                        console.log('📱 Found knock context for /typing:', knockContext);
+                        return {
+                            success: true,
+                            action: 'typing',
+                            context: knockContext,
+                            message: 'Typing indicator triggered'
+                        };
+                    }
+                }
+                
+                return {
+                    success: false,
+                    message: 'Could not find room context for this message. Please reply to a message in the conversation.'
+                };
+            } else {
+                return {
+                    success: false,
+                    message: 'Please reply to a message from the conversation to trigger typing.'
+                };
+            }
+        }
+
         // Handle /approve, /reject, /away (must reply to a knock notification)
         if (command === '/approve' || command === '/reject' || command === '/away') {
             if (!message.reply_to_message) {

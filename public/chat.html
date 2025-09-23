@@ -525,6 +525,11 @@
             addMessage(message);
             playMessageSound();
         });
+        
+        // Admin typing indicator
+        socket.on('admin-typing', (data) => {
+            showTypingIndicator(data.admin || 'Rajendran');
+        });
     
         socket.on('disconnect', () => {
             addSystemMessage('Connection lost. Please refresh the page.');
@@ -539,6 +544,7 @@
         }
     
         function addMessage(message) {
+            hideTypingIndicator();
             const messageElement = document.createElement('div');
             messageElement.className = `message ${message.isAdmin ? 'admin-message' : 'participant-message'}`;
             
@@ -567,6 +573,41 @@
     
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Typing indicator helpers
+        let typingTimeoutId = null;
+        function showTypingIndicator(adminName) {
+            hideTypingIndicator();
+            const indicator = document.createElement('div');
+            indicator.id = 'typing-indicator';
+            indicator.style.cssText = 'margin: 6px 0; color: #6b7280; font-size: 12px; display: flex; align-items: center; gap: 6px;';
+            indicator.innerHTML = `
+                <span>${adminName} is typing</span>
+                <span class="dots" style="display:inline-block; width: 20px; text-align:left;">...</span>
+            `;
+            messagesDiv.appendChild(indicator);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Simple animated dots
+            let step = 0;
+            const dotsEl = indicator.querySelector('.dots');
+            typingTimeoutId = setInterval(() => {
+                step = (step + 1) % 4;
+                dotsEl.textContent = '.'.repeat(step);
+            }, 500);
+
+            // Auto-hide after 6 seconds
+            setTimeout(hideTypingIndicator, 6000);
+        }
+
+        function hideTypingIndicator() {
+            if (typingTimeoutId) {
+                clearInterval(typingTimeoutId);
+                typingTimeoutId = null;
+            }
+            const existing = document.getElementById('typing-indicator');
+            if (existing) existing.remove();
         }
     
         function addSystemMessage(text) {

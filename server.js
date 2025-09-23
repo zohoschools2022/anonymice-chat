@@ -436,6 +436,14 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                 console.log(`👋 Nudge broadcast to room-${context.roomId}: ${nudgeMessage.text}`);
                 break;
             }
+
+            case 'typing': {
+                const ctx = response.context || response;
+                // Broadcast a typing indicator to the room
+                io.to(`room-${ctx.roomId}`).emit('admin-typing', { roomId: ctx.roomId, admin: ADMIN_NAME });
+                console.log(`⌨️ Admin typing indicator sent to room-${ctx.roomId}`);
+                break;
+            }
                 
                 case 'reply':
                     // Send admin response to user
