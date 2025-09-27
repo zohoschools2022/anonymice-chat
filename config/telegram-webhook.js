@@ -19,7 +19,8 @@ function handleTelegramMessage(message) {
         const command = text.toLowerCase().trim();
         
         // Handle /nudge command - works on any message
-        if (command === '/nudge') {
+        // Also support single letter shortcut: /n
+        if (command === '/nudge' || command === '/n') {
             if (message.reply_to_message) {
                 const replyToMessageId = message.reply_to_message.message_id;
                 console.log('📱 /nudge command on reply to message ID:', replyToMessageId);
@@ -66,7 +67,8 @@ function handleTelegramMessage(message) {
         }
         
         // Handle /kick command - works on any replied message
-        if (command.startsWith('/kick')) {
+        // Also support single letter shortcut: /k
+        if (command.startsWith('/kick') || command === '/k') {
             if (message.reply_to_message) {
                 const replyToMessageId = message.reply_to_message.message_id;
                 console.log('📱 /kick command on reply to message ID:', replyToMessageId);
@@ -138,7 +140,8 @@ function handleTelegramMessage(message) {
         // (removed) /typing command
 
         // Handle /approve, /reject, /away (must reply to a knock notification)
-        if (command === '/approve' || command === '/reject' || command === '/away') {
+        // Also support single letter shortcuts: /a, /r, /away
+        if (command === '/approve' || command === '/a' || command === '/reject' || command === '/r' || command === '/away') {
             if (!message.reply_to_message) {
                 return { success: false, message: 'Please reply to a knock notification with this command.' };
             }
@@ -146,7 +149,10 @@ function handleTelegramMessage(message) {
             // Only consider pending knocks for these commands
             for (let [roomId, knockContext] of pendingKnocks) {
                 if (knockContext.replyMessageId === replyToMessageId) {
-                    const action = command.slice(1); // remove leading '/'
+                    // Map single letter commands to full actions
+                    let action = command.slice(1); // remove leading '/'
+                    if (action === 'a') action = 'approve';
+                    if (action === 'r') action = 'reject';
                     return {
                         success: true,
                         action,
