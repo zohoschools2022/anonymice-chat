@@ -242,8 +242,8 @@ function saveData() {
 }
 
 // Load data on startup
-// loadData(); // Temporarily disabled to test if file persistence is causing the issue
-console.log('📂 File persistence temporarily disabled for testing');
+loadData();
+console.log('📂 File persistence enabled');
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -866,7 +866,7 @@ io.on('connection', (socket) => {
             chatRooms.get(roomId).messages.push(welcomeMessage);
             
             // Save data after room creation
-            // saveData(); // Temporarily disabled
+            saveData();
             
             socket.emit('room-assigned', { roomId, name: participantName });
             
@@ -959,7 +959,7 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             if (room) {
                                        room.messages.push(message);
-                       // saveData(); // Temporarily disabled
+                       saveData();
                 io.to(`room-${roomId}`).emit('new-message', message);
                 socket.emit('message-sent', message);
             }
@@ -969,7 +969,7 @@ io.on('connection', (socket) => {
             const room = chatRooms.get(roomId);
             if (room) {
                                        room.messages.push(message);
-                       // saveData(); // Temporarily disabled
+                       saveData();
                 io.to(`room-${roomId}`).emit('new-message', message);
                 io.to('admin-room').emit('admin-message', { roomId, message });
                 socket.emit('message-sent', message);
@@ -1052,7 +1052,7 @@ io.on('connection', (socket) => {
                 };
                 
                 room.messages.push(leaveMessage);
-                // saveData(); // Temporarily disabled
+                saveData();
                 
                 // Notify admin
                 io.to('admin-room').emit('participant-left', { 
@@ -1148,7 +1148,7 @@ io.on('connection', (socket) => {
                     }
                 }
                 
-                // saveData(); // Temporarily disabled
+                saveData();
                 console.log(`🧹 Room ${roomId} completely deleted from chatRooms`);
                 console.log(`🧹 Current rooms after deletion:`, Array.from(chatRooms.keys()));
                 
