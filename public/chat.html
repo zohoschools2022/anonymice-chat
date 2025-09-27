@@ -518,7 +518,6 @@
             if (message.sender === 'System' && message.text.includes("The admin is not able to continue this conversation any longer")) {
                 // Disable chat input and show kick notification
                 messageInput.disabled = true;
-                leaveRoomBtn.disabled = true;
                 addSystemMessage('Chat has been ended by the admin. You can no longer send messages.');
                 
                 // Change the status indicator to show kicked out
@@ -528,6 +527,12 @@
                     statusIndicator.style.color = '#ef4444';
                     statusIndicator.title = 'Kicked out by admin';
                 }
+                
+                // Update leave room button to show "Return Home" and redirect immediately
+                leaveRoomBtn.textContent = '🏠 Return Home';
+                leaveRoomBtn.onclick = () => {
+                    window.location.href = '/';
+                };
             }
         });
 
