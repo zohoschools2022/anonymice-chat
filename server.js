@@ -456,14 +456,18 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         };
                         
                         room.messages.push(adminMessage);
+                        saveData();
                         
                         // Send to user in the room
+                        console.log(`📤 Broadcasting admin message to room-${response.roomId}:`, adminMessage);
                         io.to(`room-${response.roomId}`).emit('new-message', adminMessage);
                         
                         // Also notify admin interface
                         io.to('admin-room').emit('admin-message', { roomId: response.roomId, message: adminMessage });
                         
                         console.log(`📤 Admin response sent to Room ${response.roomId}: ${response.message}`);
+                    } else {
+                        console.log(`⚠️ Room ${response.roomId} not found for admin reply`);
                     }
                     break;
                     
@@ -1014,10 +1018,14 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('join-room', (data) => {
+        socket.on('join-room', (data) => {
         const roomId = parseInt(data.roomId, 10);
         const room = chatRooms.get(roomId);
-        if (!room) { socket.emit('room-not-found'); return; }
+        if (!room) { 
+            console.log(`⚠️ Room ${roomId} not found for join-room`);
+            socket.emit('room-not-found'); 
+            return; 
+        }
     
         if (data.isAdmin) {
           socket.join(`room-${roomId}`);
@@ -1027,7 +1035,9 @@ io.on('connection', (socket) => {
     
         const participantName = data.participantName;
         if (!participantName || room.participant?.name !== participantName) {
-          socket.emit('room-not-found'); return;
+            console.log(`⚠️ Invalid participant name ${participantName} for room ${roomId}`);
+            socket.emit('room-not-found'); 
+            return;
         }
     
         // Cancel grace period if user is reconnecting (not actually leaving)
@@ -1040,6 +1050,7 @@ io.on('connection', (socket) => {
         socket.join(`room-${roomId}`);
         console.log(`🔍 Join-room: Sending ${room.messages.length} messages to participant ${participantName}`);
         console.log(`🔍 Join-room: Room messages:`, room.messages);
+        console.log(`🔍 Join-room: Socket ${socket.id} joined room-${roomId}`);
         
         socket.emit('room-joined', { 
             roomId, 
