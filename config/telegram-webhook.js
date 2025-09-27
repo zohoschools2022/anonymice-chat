@@ -97,6 +97,37 @@ function handleTelegramMessage(message) {
                     }
                 }
                 
+                // If no specific context found, try to find any active room context for this user
+                // This allows kicking from any message in the conversation
+                const replyText = message.reply_to_message.text || '';
+                console.log('📱 No specific context found, searching by reply text:', replyText);
+                
+                // Look for user name patterns in the reply text to identify the room
+                for (let [contextId, context] of activeRoomContexts) {
+                    if (context.participantName && replyText.includes(context.participantName)) {
+                        console.log('📱 Found user context by name match for /kick:', context);
+                        return {
+                            success: true,
+                            action: 'kick',
+                            context: context,
+                            message: 'Conversation closed by admin'
+                        };
+                    }
+                }
+                
+                // Also check pending knocks for name matches
+                for (let [roomId, knockContext] of pendingKnocks) {
+                    if (knockContext.participantName && replyText.includes(knockContext.participantName)) {
+                        console.log('📱 Found pending knock context by name match for /kick:', knockContext);
+                        return {
+                            success: true,
+                            action: 'kick',
+                            context: knockContext,
+                            message: 'Conversation closed by admin'
+                        };
+                    }
+                }
+                
                 return {
                     success: false,
                     message: 'Could not find room context for this message. Please reply to a message in the conversation you want to close.'
