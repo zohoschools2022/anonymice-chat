@@ -53,7 +53,37 @@ function handleTelegramMessage(message) {
                     }
                 }
                 
-                // If no context found, return error
+                // If no specific context found, try to find any active room context for this user
+                // This allows nudging from any message in the conversation
+                const replyText = message.reply_to_message.text || '';
+                console.log('📱 No specific context found, searching by reply text:', replyText);
+                
+                // Look for user name patterns in the reply text to identify the room
+                for (let [contextId, context] of activeRoomContexts) {
+                    if (context.participantName && replyText.includes(context.participantName)) {
+                        console.log('📱 Found user context by name match for /nudge:', context);
+                        return {
+                            success: true,
+                            action: 'nudge',
+                            context: context,
+                            message: 'Nudge sent to user'
+                        };
+                    }
+                }
+                
+                // Also check pending knocks for name matches
+                for (let [roomId, knockContext] of pendingKnocks) {
+                    if (knockContext.participantName && replyText.includes(knockContext.participantName)) {
+                        console.log('📱 Found pending knock context by name match for /nudge:', knockContext);
+                        return {
+                            success: true,
+                            action: 'nudge',
+                            context: knockContext,
+                            message: 'Nudge sent to user'
+                        };
+                    }
+                }
+                
                 return {
                     success: false,
                     message: 'Could not find room context for this message. Make sure you are replying to a message from an active conversation.'
