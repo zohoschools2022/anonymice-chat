@@ -574,6 +574,25 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         sendTelegramMessage('😴 Sleep mode is not active - service is running normally.');
                     }
                     break;
+                    
+                case 'status':
+                    // Show room statistics
+                    const totalRooms = chatRooms.size;
+                    const activeRooms = Array.from(chatRooms.values()).filter(room => room.status === 'active').length;
+                    const pendingRooms = Array.from(chatRooms.values()).filter(room => room.status === 'pending').length;
+                    const leftRooms = Array.from(chatRooms.values()).filter(room => room.status === 'left').length;
+                    const cleanedRooms = Array.from(chatRooms.values()).filter(room => room.status === 'cleaned').length;
+                    
+                    const statusMessage = `📊 <b>Room Status Report</b>\n\n` +
+                        `🏠 <b>Total Rooms:</b> ${totalRooms}/${maxRooms}\n` +
+                        `🟢 <b>Active:</b> ${activeRooms}\n` +
+                        `⏳ <b>Pending:</b> ${pendingRooms}\n` +
+                        `🚪 <b>Left:</b> ${leftRooms}\n` +
+                        `🧹 <b>Cleaned:</b> ${cleanedRooms}\n\n` +
+                        `💬 <b>Actively Engaged:</b> ${activeRooms} room${activeRooms !== 1 ? 's' : ''}`;
+                    
+                    sendTelegramMessage(statusMessage);
+                    break;
         }
     } else if (response && !response.success) {
         // Send helpful message back to admin if user didn't reply properly

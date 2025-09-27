@@ -109,6 +109,15 @@ function handleTelegramMessage(message) {
             }
         }
         
+        // Handle /status command - show room statistics
+        if (command === '/status' || command === '/s') {
+            return {
+                success: true,
+                action: 'status',
+                message: 'Getting room status...'
+            };
+        }
+        
         // Handle sleep commands
         if (command.startsWith('/sleep')) {
             const sleepCommand = text.substring('/sleep'.length).trim();
