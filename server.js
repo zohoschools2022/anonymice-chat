@@ -182,7 +182,7 @@ const ADMIN_NAME = "Rajendran D";
 const chatRooms = new Map();
 const activeConnections = new Map();
 const participantRooms = new Map(); // Track which participant is in which room
-const maxRooms = 50;
+const maxRooms = 100;
 
 // Admin status tracking
 let adminStatus = { isActive: true, lastUpdate: new Date().toISOString() };
