@@ -121,27 +121,32 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
         // Delete previous message if it exists (to avoid repetitive content)
         // Do this FIRST and wait for it to complete before sending new message
         if (lastMessageId) {
-            console.log(`🗑️ Deleting previous Telegram message ${lastMessageId} for Room ${roomId}`);
-            const deleteResult = await deleteTelegramMessage(lastMessageId);
+            console.log(`🗑️ [Room ${roomId}] Attempting to delete previous message ${lastMessageId}...`);
             
-            // Remove the deleted message ID from tracking (so we don't try to delete it again at the end)
-            // Even if deletion failed (e.g., message too old), remove from tracking to avoid retries
+            // First, remove from tracking array (we're about to delete it)
             if (roomTelegramMessageIds.has(roomId)) {
                 const messageIds = roomTelegramMessageIds.get(roomId);
                 const index = messageIds.indexOf(lastMessageId);
                 if (index > -1) {
                     messageIds.splice(index, 1);
-                    console.log(`🗑️ Removed message ID ${lastMessageId} from tracking for Room ${roomId} (deletion ${deleteResult ? 'succeeded' : 'failed or skipped'})`);
-                } else {
-                    console.log(`⚠️ Message ID ${lastMessageId} not found in tracking array for Room ${roomId}`);
+                    console.log(`🗑️ [Room ${roomId}] Removed message ID ${lastMessageId} from tracking array`);
                 }
+            }
+            
+            // Now try to delete it
+            const deleteResult = await deleteTelegramMessage(lastMessageId);
+            
+            if (deleteResult && deleteResult.ok) {
+                console.log(`✅ [Room ${roomId}] Successfully deleted message ${lastMessageId}`);
+            } else {
+                console.log(`⚠️ [Room ${roomId}] Could not delete message ${lastMessageId} (may be too old or already deleted)`);
             }
             
             // Small delay to ensure Telegram processes the deletion
             // This helps prevent race conditions where new message arrives before deletion completes
-            if (deleteResult) {
-                await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay for better reliability
-            }
+            await new Promise(resolve => setTimeout(resolve, 400)); // 400ms delay for better reliability
+        } else {
+            console.log(`ℹ️ [Room ${roomId}] No previous message to delete (first message)`);
         }
         
         // Build conversation history
@@ -192,6 +197,9 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
                 roomTelegramMessageIds.set(roomId, []);
             }
             roomTelegramMessageIds.get(roomId).push(result.message_id);
+            console.log(`📝 [Room ${roomId}] Tracking new message ID ${result.message_id} (total tracked: ${roomTelegramMessageIds.get(roomId).length})`);
+        } else {
+            console.error(`❌ [Room ${roomId}] Failed to get message ID from Telegram response`);
         }
         
         // Return the message ID for context tracking
