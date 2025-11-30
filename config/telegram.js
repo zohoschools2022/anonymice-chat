@@ -238,24 +238,34 @@ async function sendFinalConversationSummary(participantName, roomId, conversatio
         }
     }
     
-    // Get all message IDs for this room
+    // Get all message IDs for this room (these are messages that haven't been deleted yet)
     const messageIds = roomTelegramMessageIds.get(roomId) || [];
     console.log(`🗑️ Deleting ${messageIds.length} intermediate messages for Room ${roomId}`);
     
-    // Delete all intermediate messages
+    // Delete all intermediate messages sequentially for better reliability
     if (messageIds.length > 0) {
-        // Delete messages in parallel (but with rate limiting)
-        const deletePromises = messageIds.map((msgId, index) => 
-            new Promise(resolve => {
-                setTimeout(async () => {
-                    await deleteTelegramMessage(msgId);
-                    resolve();
-                }, index * 100); // Stagger deletions by 100ms to avoid rate limits
-            })
-        );
+        let deletedCount = 0;
+        let failedCount = 0;
         
-        await Promise.all(deletePromises);
-        console.log(`✅ Deleted ${messageIds.length} intermediate messages for Room ${roomId}`);
+        // Delete messages one by one to avoid rate limits and ensure reliability
+        for (let i = 0; i < messageIds.length; i++) {
+            const msgId = messageIds[i];
+            const deleteResult = await deleteTelegramMessage(msgId);
+            if (deleteResult) {
+                deletedCount++;
+            } else {
+                failedCount++;
+            }
+            
+            // Small delay between deletions to avoid rate limits
+            if (i < messageIds.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 150)); // 150ms between deletions
+            }
+        }
+        
+        console.log(`✅ Deleted ${deletedCount} intermediate messages for Room ${roomId} (${failedCount} failed or already deleted)`);
+    } else {
+        console.log(`ℹ️ No intermediate messages to delete for Room ${roomId}`);
     }
     
     // Small delay to ensure deletions are processed
