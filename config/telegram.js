@@ -242,8 +242,12 @@ async function sendFinalConversationSummary(participantName, roomId, conversatio
     }
     
     // Get all message IDs for this room (these are messages that haven't been deleted yet)
+    // At this point, this should typically contain only the last message sent during conversation
     const messageIds = roomTelegramMessageIds.get(roomId) || [];
-    console.log(`🗑️ Deleting ${messageIds.length} intermediate messages for Room ${roomId}`);
+    console.log(`🗑️ Found ${messageIds.length} intermediate message(s) to delete for Room ${roomId}`);
+    if (messageIds.length > 0) {
+        console.log(`🗑️ Message IDs: ${messageIds.join(', ')}`);
+    }
     
     // Delete all intermediate messages sequentially for better reliability
     if (messageIds.length > 0) {
@@ -253,22 +257,25 @@ async function sendFinalConversationSummary(participantName, roomId, conversatio
         // Delete messages one by one to avoid rate limits and ensure reliability
         for (let i = 0; i < messageIds.length; i++) {
             const msgId = messageIds[i];
+            console.log(`🗑️ Deleting message ${i + 1}/${messageIds.length}: ${msgId}`);
             const deleteResult = await deleteTelegramMessage(msgId);
             if (deleteResult) {
                 deletedCount++;
+                console.log(`✅ Successfully deleted message ${msgId}`);
             } else {
                 failedCount++;
+                console.log(`⚠️ Failed to delete message ${msgId} (may be too old or already deleted)`);
             }
             
             // Small delay between deletions to avoid rate limits
             if (i < messageIds.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 150)); // 150ms between deletions
+                await new Promise(resolve => setTimeout(resolve, 200)); // 200ms between deletions for better reliability
             }
         }
         
-        console.log(`✅ Deleted ${deletedCount} intermediate messages for Room ${roomId} (${failedCount} failed or already deleted)`);
+        console.log(`✅ Final cleanup: Deleted ${deletedCount} intermediate messages for Room ${roomId} (${failedCount} failed or already deleted)`);
     } else {
-        console.log(`ℹ️ No intermediate messages to delete for Room ${roomId}`);
+        console.log(`ℹ️ No intermediate messages to delete for Room ${roomId} (all were already deleted during conversation)`);
     }
     
     // Small delay to ensure deletions are processed
