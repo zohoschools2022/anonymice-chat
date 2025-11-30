@@ -383,17 +383,31 @@ function loadData() {
 }
 
 // Save data to file
+// Only save active and pending rooms (exclude 'left' and 'cleaned' rooms)
+// This prevents ghost rooms from persisting and allows room number reuse
 function saveData() {
     try {
+        // Filter out 'left' and 'cleaned' rooms before saving
+        // This ensures they don't get restored on next startup
+        const roomsToSave = Array.from(chatRooms.entries()).filter(([roomId, room]) => {
+            return room.status === 'active' || room.status === 'pending';
+        });
+        
         const data = {
-            chatRooms: Array.from(chatRooms.entries()),
+            chatRooms: roomsToSave,
             participantRooms: Array.from(participantRooms.entries()),
             timestamp: new Date().toISOString()
         };
         
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-        console.log('💾 Chat data saved successfully');
-        console.log('💾 Saved rooms:', Array.from(chatRooms.keys()));
+        
+        const savedCount = roomsToSave.length;
+        const totalCount = chatRooms.size;
+        if (savedCount < totalCount) {
+            console.log(`💾 Saved ${savedCount} active/pending rooms (${totalCount - savedCount} left/cleaned rooms excluded from persistence)`);
+        } else {
+            console.log('💾 Chat data saved successfully');
+        }
     } catch (error) {
         console.log('❌ Error saving chat data:', error.message);
     }
