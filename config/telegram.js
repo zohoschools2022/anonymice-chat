@@ -125,12 +125,15 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
             const deleteResult = await deleteTelegramMessage(lastMessageId);
             
             // Remove the deleted message ID from tracking (so we don't try to delete it again at the end)
+            // Even if deletion failed (e.g., message too old), remove from tracking to avoid retries
             if (roomTelegramMessageIds.has(roomId)) {
                 const messageIds = roomTelegramMessageIds.get(roomId);
                 const index = messageIds.indexOf(lastMessageId);
                 if (index > -1) {
                     messageIds.splice(index, 1);
-                    console.log(`🗑️ Removed message ID ${lastMessageId} from tracking for Room ${roomId}`);
+                    console.log(`🗑️ Removed message ID ${lastMessageId} from tracking for Room ${roomId} (deletion ${deleteResult ? 'succeeded' : 'failed or skipped'})`);
+                } else {
+                    console.log(`⚠️ Message ID ${lastMessageId} not found in tracking array for Room ${roomId}`);
                 }
             }
             
