@@ -6,6 +6,9 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HER
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || 'YOUR_CHAT_ID_HERE';
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
+// Track pending message operations per room to prevent race conditions
+const pendingRoomOperations = new Map(); // roomId -> Promise
+
 // Send message to Telegram
 async function sendTelegramMessage(message, options = {}) {
     try {
@@ -97,19 +100,33 @@ async function sendKnockNotification(participantName, roomId) {
 
 // Send user message notification with full conversation history
 // If lastMessageId is provided, deletes the previous message first
+// Uses a queue per room to prevent race conditions
 async function sendUserMessageNotification(participantName, roomId, message, chatHistory = [], lastMessageId = null) {
-    // Delete previous message if it exists (to avoid repetitive content)
-    // Do this FIRST and wait for it to complete before sending new message
-    if (lastMessageId) {
-        console.log(`🗑️ Deleting previous Telegram message ${lastMessageId} for Room ${roomId}`);
-        const deleteResult = await deleteTelegramMessage(lastMessageId);
-        
-        // Small delay to ensure Telegram processes the deletion
-        // This helps prevent race conditions where new message arrives before deletion completes
-        if (deleteResult) {
-            await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
+    // Wait for any pending operation for this room to complete
+    // This prevents race conditions when multiple messages arrive quickly
+    if (pendingRoomOperations.has(roomId)) {
+        console.log(`⏳ Waiting for pending operation for Room ${roomId}...`);
+        try {
+            await pendingRoomOperations.get(roomId);
+        } catch (error) {
+            console.error(`⚠️ Previous operation for Room ${roomId} failed:`, error);
         }
     }
+    
+    // Create a promise for this operation
+    const operationPromise = (async () => {
+        // Delete previous message if it exists (to avoid repetitive content)
+        // Do this FIRST and wait for it to complete before sending new message
+        if (lastMessageId) {
+            console.log(`🗑️ Deleting previous Telegram message ${lastMessageId} for Room ${roomId}`);
+            const deleteResult = await deleteTelegramMessage(lastMessageId);
+            
+            // Small delay to ensure Telegram processes the deletion
+            // This helps prevent race conditions where new message arrives before deletion completes
+            if (deleteResult) {
+                await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay for better reliability
+            }
+        }
     
     // Build conversation history
     let historyText = '';
