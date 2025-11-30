@@ -9,6 +9,9 @@ const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 // Track pending message operations per room to prevent race conditions
 const pendingRoomOperations = new Map(); // roomId -> Promise
 
+// Track all Telegram message IDs per room for final cleanup
+const roomTelegramMessageIds = new Map(); // roomId -> [messageId1, messageId2, ...]
+
 // Send message to Telegram
 async function sendTelegramMessage(message, options = {}) {
     try {
@@ -170,6 +173,14 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
 
         const result = await sendTelegramMessage(notification);
         
+        // Track this message ID for final cleanup
+        if (result && result.message_id) {
+            if (!roomTelegramMessageIds.has(roomId)) {
+                roomTelegramMessageIds.set(roomId, []);
+            }
+            roomTelegramMessageIds.get(roomId).push(result.message_id);
+        }
+        
         // Return the message ID for context tracking
         return {
             success: result ? true : false,
@@ -194,6 +205,67 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
     }
 }
 
+// Send final conversation summary and delete all intermediate messages
+// This leaves only the final summary in Telegram
+async function sendFinalConversationSummary(participantName, roomId, conversationSummary) {
+    const time = new Date().toLocaleTimeString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        hour12: true, 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    // Build the final summary message
+    const finalMessage = `👋 ${participantName} from Room ${roomId} - Conversation ended (${time})${conversationSummary}`;
+    
+    // Wait for any pending operations to complete
+    if (pendingRoomOperations.has(roomId)) {
+        console.log(`⏳ Waiting for pending operations for Room ${roomId} before sending final summary...`);
+        try {
+            await pendingRoomOperations.get(roomId);
+        } catch (error) {
+            console.error(`⚠️ Previous operation for Room ${roomId} failed:`, error);
+        }
+    }
+    
+    // Get all message IDs for this room
+    const messageIds = roomTelegramMessageIds.get(roomId) || [];
+    console.log(`🗑️ Deleting ${messageIds.length} intermediate messages for Room ${roomId}`);
+    
+    // Delete all intermediate messages
+    if (messageIds.length > 0) {
+        // Delete messages in parallel (but with rate limiting)
+        const deletePromises = messageIds.map((msgId, index) => 
+            new Promise(resolve => {
+                setTimeout(async () => {
+                    await deleteTelegramMessage(msgId);
+                    resolve();
+                }, index * 100); // Stagger deletions by 100ms to avoid rate limits
+            })
+        );
+        
+        await Promise.all(deletePromises);
+        console.log(`✅ Deleted ${messageIds.length} intermediate messages for Room ${roomId}`);
+    }
+    
+    // Small delay to ensure deletions are processed
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Send the final summary message
+    const result = await sendTelegramMessage(finalMessage);
+    
+    // Clear the message IDs for this room
+    roomTelegramMessageIds.delete(roomId);
+    
+    console.log(`✅ Final summary sent for Room ${roomId}, all intermediate messages deleted`);
+    
+    return {
+        success: result ? true : false,
+        messageId: result ? result.message_id : null,
+        result: result
+    };
+}
+
 // Send admin response to user
 async function sendAdminResponse(roomId, message) {
     // This will be handled by the server's socket.io system
@@ -207,5 +279,6 @@ module.exports = {
     deleteTelegramMessage,
     sendKnockNotification,
     sendUserMessageNotification,
+    sendFinalConversationSummary,
     sendAdminResponse
 };

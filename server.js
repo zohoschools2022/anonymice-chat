@@ -194,51 +194,39 @@ function kickInactiveUser(roomId) {
     room.status = 'left';
     room.leftAt = Date.now();
     
-    // Build and send final summary to Telegram
-    const { sendTelegramMessage } = require('./config/telegram');
-    const time = new Date().toLocaleTimeString('en-IN', { 
-        timeZone: 'Asia/Kolkata', 
-        hour12: true, 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
+    // Build and send final summary to Telegram (only actual conversation messages)
+    const { sendFinalConversationSummary } = require('./config/telegram');
     
     let conversationSummary = '';
     if (room.messages && room.messages.length > 0) {
+        // Filter out system messages, welcome messages, and other non-conversation messages
         const filteredMessages = room.messages.filter(msg => 
-            !msg.text.includes('Welcome to the chat room') && 
-            !msg.text.includes('You have joined the chat room')
+            msg.sender !== 'System' && 
+            !msg.text.includes('Welcome') && 
+            !msg.text.includes('has left') &&
+            !msg.text.includes('has been inactive') &&
+            !msg.text.includes('not able to continue')
         );
+        
         if (filteredMessages.length > 0) {
             conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
             filteredMessages.forEach(msg => {
-                let sender;
-                if (msg.isAdmin) {
-                    sender = 'Rajendran';
-                } else if (msg.sender === 'System') {
-                    sender = `[${msg.text}]`;
-                    conversationSummary += `${sender}\n`;
-                    return;
-                } else {
-                    sender = msg.sender;
-                }
+                const sender = msg.isAdmin ? 'Rajendran' : msg.sender;
                 const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
                     timeZone: 'Asia/Kolkata', 
                     hour12: true, 
                     hour: '2-digit', 
                     minute: '2-digit' 
                 });
-                if (msg.sender !== 'System') {
-                    conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
-                }
+                conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
             });
         }
     }
     
-    const leaveNotification = `👋 ${participantName} from Room ${roomId} was removed due to inactivity (${time})${conversationSummary}`;
-    sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
-        .then(() => console.log(`📱 Inactivity kick summary sent for ${participantName} Room ${roomId}`))
-        .catch(error => console.error(`❌ Failed to send inactivity summary:`, error));
+    // Send final summary and delete all intermediate messages
+    sendFinalConversationSummary(participantName, roomId, conversationSummary)
+        .then(() => console.log(`📱 Final summary sent and intermediate messages deleted: ${participantName} Room ${roomId} (inactivity)`))
+        .catch(error => console.error(`❌ Failed to send final summary:`, error));
     
     // Notify admin interface
     io.to('admin-room').emit('participant-left', { 
@@ -629,44 +617,39 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                         roomToClose.messages.push(byeMessage);
                         io.to(`room-${ctx.roomId}`).emit('new-message', byeMessage);
 
-                        // Build and send final summary to Telegram (same as user-leave flow)
-                        const { sendTelegramMessage } = require('./config/telegram');
-                        const time = new Date().toLocaleTimeString('en-IN', { 
-                            timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit' 
-                        });
+                        // Build and send final summary to Telegram (only actual conversation messages)
+                        const { sendFinalConversationSummary } = require('./config/telegram');
+                        const participantName = roomToClose.participant?.name || 'Unknown';
 
                         let conversationSummary = '';
                         if (roomToClose.messages && roomToClose.messages.length > 0) {
+                            // Filter out system messages, welcome messages, and other non-conversation messages
                             const filteredMessages = roomToClose.messages.filter(msg => 
-                                !msg.text.includes('Welcome to the chat room') && 
-                                !msg.text.includes('You have joined the chat room')
+                                msg.sender !== 'System' && 
+                                !msg.text.includes('Welcome') && 
+                                !msg.text.includes('has left') &&
+                                !msg.text.includes('has been inactive') &&
+                                !msg.text.includes('not able to continue')
                             );
+                            
                             if (filteredMessages.length > 0) {
                                 conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
                                 filteredMessages.forEach(msg => {
-                                    let sender;
-                                    if (msg.isAdmin) {
-                                        sender = 'Rajendran';
-                                    } else if (msg.sender === 'System') {
-                                        sender = `[${msg.text}]`;
-                                        conversationSummary += `${sender}\n`;
-                                        return;
-                                    } else {
-                                        sender = msg.sender;
-                                    }
+                                    const sender = msg.isAdmin ? 'Rajendran' : msg.sender;
                                     const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
-                                        timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit' 
+                                        timeZone: 'Asia/Kolkata', 
+                                        hour12: true, 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
                                     });
-                                    if (msg.sender !== 'System') {
-                                        conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
-                                    }
+                                    conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
                                 });
                             }
                         }
-                        const participantName = roomToClose.participant?.name || 'Unknown';
-                        const leaveNotification = `👋 ${participantName} from Room ${ctx.roomId} was removed by admin (${time})${conversationSummary}`;
-                        sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
-                            .then(() => console.log(`📱 Final conversation summary sent for kicked user ${participantName} Room ${ctx.roomId}`))
+                        
+                        // Send final summary and delete all intermediate messages
+                        sendFinalConversationSummary(participantName, ctx.roomId, conversationSummary)
+                            .then(() => console.log(`📱 Final summary sent and intermediate messages deleted: ${participantName} Room ${ctx.roomId} (kicked)`))
                             .catch(error => console.error(`❌ Failed to send final summary (kick):`, error));
 
                         // Mark room as left first, then clean up after a delay
@@ -1268,37 +1251,24 @@ io.on('connection', (socket) => {
                     message: leaveMessage
                 });
                 
-                // Send final conversation summary to Telegram
-                const { sendTelegramMessage } = require('./config/telegram');
-                const time = new Date().toLocaleTimeString('en-IN', { 
-                    timeZone: 'Asia/Kolkata',
-                    hour12: true, 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
+                // Build conversation summary (only actual conversation messages)
+                const { sendFinalConversationSummary } = require('./config/telegram');
                 
-                // Build conversation summary
                 let conversationSummary = '';
                 if (room.messages && room.messages.length > 0) {
-                    // Filter out welcome messages and build clean history
+                    // Filter out system messages, welcome messages, and other non-conversation messages
                     const filteredMessages = room.messages.filter(msg => 
-                        !msg.text.includes('Welcome to the chat room') && 
-                        !msg.text.includes('You have joined the chat room')
+                        msg.sender !== 'System' && 
+                        !msg.text.includes('Welcome') && 
+                        !msg.text.includes('has left') &&
+                        !msg.text.includes('has been inactive') &&
+                        !msg.text.includes('not able to continue')
                     );
                     
                     if (filteredMessages.length > 0) {
                         conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
                         filteredMessages.forEach(msg => {
-                            let sender;
-                            if (msg.isAdmin) {
-                                sender = 'Rajendran';
-                            } else if (msg.sender === 'System') {
-                                sender = `[${msg.text}]`;
-                                conversationSummary += `${sender}\n`;
-                                return; // Skip the time and colon for system messages
-                            } else {
-                                sender = msg.sender;
-                            }
+                            const sender = msg.isAdmin ? 'Rajendran' : msg.sender;
                             
                             // Format time as HH:MM AM/PM in IST
                             const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
@@ -1308,21 +1278,14 @@ io.on('connection', (socket) => {
                                 minute: '2-digit' 
                             });
                             
-                            if (msg.sender !== 'System') {
-                                conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
-                            }
+                            conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
                         });
                     }
                 }
                 
-                const leaveNotification = `👋 ${connection.name} from Room ${roomId} left (${time})${conversationSummary}`;
-                
-                console.log(`📱 Sending final summary for ${connection.name} from Room ${roomId}`);
-                console.log(`📱 Summary length: ${leaveNotification.length} characters`);
-                console.log(`📱 Summary preview: ${leaveNotification.substring(0, 100)}...`);
-                
-                sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
-                    .then(() => console.log(`📱 Final conversation summary sent: User ${connection.name} left Room ${roomId}`))
+                // Send final summary and delete all intermediate messages
+                sendFinalConversationSummary(connection.name, roomId, conversationSummary)
+                    .then(() => console.log(`📱 Final conversation summary sent and intermediate messages deleted: User ${connection.name} left Room ${roomId}`))
                     .catch(error => console.error(`❌ Failed to send final summary:`, error));
                 
                 console.log(`Participant ${connection.name} left room ${roomId}`);
