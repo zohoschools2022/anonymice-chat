@@ -1147,6 +1147,8 @@ io.on('connection', (socket) => {
                 // IMPORTANT: Store the current message ID BEFORE sending to prevent race conditions
                 const currentLastMessageId = room.lastTelegramMessageId;
                 
+                console.log(`📤 [Room ${roomId}] Sending user message notification. Previous message ID: ${currentLastMessageId || 'none'}`);
+                
                 sendUserMessageNotification(connection.name, roomId, data.text, room.messages, currentLastMessageId).then((result) => {
                     if (result.success && result.messageId) {
                         // Atomically update the message ID - this prevents race conditions

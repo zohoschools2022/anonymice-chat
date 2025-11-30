@@ -33,6 +33,13 @@ async function sendTelegramMessage(message, options = {}) {
 
 // Delete a Telegram message with retry logic
 async function deleteTelegramMessage(messageId, retries = 2) {
+    if (!messageId) {
+        console.error('❌ deleteTelegramMessage called with null/undefined messageId');
+        return null;
+    }
+    
+    console.log(`🗑️ [DELETE] Attempting to delete message ${messageId} from chat ${TELEGRAM_CHAT_ID}`);
+    
     for (let attempt = 0; attempt <= retries; attempt++) {
         try {
             const response = await axios.post(`${TELEGRAM_API_URL}/deleteMessage`, {
@@ -41,36 +48,60 @@ async function deleteTelegramMessage(messageId, retries = 2) {
             }, {
                 timeout: 5000 // 5 second timeout
             });
-            console.log('✅ Telegram message deleted:', messageId);
-            return response.data;
+            
+            if (response.data && response.data.ok) {
+                console.log(`✅ [DELETE] Successfully deleted message ${messageId} (attempt ${attempt + 1})`);
+                return response.data;
+            } else {
+                console.log(`⚠️ [DELETE] Delete API returned ok: false for message ${messageId}:`, response.data);
+                return response.data;
+            }
         } catch (error) {
             const errorCode = error.response?.data?.error_code;
             const errorDescription = error.response?.data?.description || '';
             
+            console.log(`⚠️ [DELETE] Attempt ${attempt + 1}/${retries + 1} failed for message ${messageId}:`, {
+                errorCode,
+                errorDescription,
+                status: error.response?.status,
+                message: error.message
+            });
+            
             // Message already deleted or not found - this is fine
-            if (errorCode === 400 && errorDescription.includes('message to delete not found')) {
-                console.log('ℹ️ Message already deleted or not found:', messageId);
+            if (errorCode === 400 && (
+                errorDescription.includes('message to delete not found') ||
+                errorDescription.includes('message can\'t be deleted')
+            )) {
+                console.log(`ℹ️ [DELETE] Message ${messageId} already deleted or not found - treating as success`);
                 return { ok: true }; // Return success since message is gone
             }
             
             // Bad request - message might be too old (48 hours limit)
             if (errorCode === 400) {
-                console.log('⚠️ Cannot delete message (may be too old):', messageId);
+                console.log(`⚠️ [DELETE] Cannot delete message ${messageId} (may be too old or invalid): ${errorDescription}`);
                 return null;
             }
             
             // Retry on network errors
-            if (attempt < retries && (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT')) {
-                console.log(`🔄 Retrying deletion (attempt ${attempt + 1}/${retries + 1})...`);
-                await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); // Exponential backoff
+            if (attempt < retries && (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || !error.response)) {
+                const delay = 500 * (attempt + 1);
+                console.log(`🔄 [DELETE] Retrying deletion in ${delay}ms (attempt ${attempt + 1}/${retries + 1})...`);
+                await new Promise(resolve => setTimeout(resolve, delay)); // Exponential backoff
                 continue;
             }
             
             // Log other errors
-            console.error('❌ Failed to delete Telegram message:', errorCode, errorDescription || error.message);
+            console.error(`❌ [DELETE] Failed to delete Telegram message ${messageId}:`, {
+                errorCode,
+                errorDescription,
+                status: error.response?.status,
+                message: error.message
+            });
             return null;
         }
     }
+    
+    console.error(`❌ [DELETE] All retry attempts failed for message ${messageId}`);
     return null;
 }
 
