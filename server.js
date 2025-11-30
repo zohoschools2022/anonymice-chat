@@ -342,6 +342,10 @@ function loadData() {
                     if (room.status === 'active' && !room.lastActivity) {
                         room.lastActivity = Date.now();
                     }
+                    // Ensure lastTelegramMessageId is initialized (migration for old data)
+                    if (!room.hasOwnProperty('lastTelegramMessageId')) {
+                        room.lastTelegramMessageId = null;
+                    }
                     chatRooms.set(roomId, room);
                 });
                 console.log(`📂 Loaded ${chatRooms.size} chat rooms`);
