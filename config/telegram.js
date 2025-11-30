@@ -25,22 +25,47 @@ async function sendTelegramMessage(message, options = {}) {
     }
 }
 
-// Delete a Telegram message
-async function deleteTelegramMessage(messageId) {
-    try {
-        const response = await axios.post(`${TELEGRAM_API_URL}/deleteMessage`, {
-            chat_id: TELEGRAM_CHAT_ID,
-            message_id: messageId
-        });
-        console.log('✅ Telegram message deleted:', messageId);
-        return response.data;
-    } catch (error) {
-        // Don't log error if message already deleted or not found (common case)
-        if (error.response?.data?.error_code !== 400) {
-            console.error('❌ Failed to delete Telegram message:', error.response?.data || error.message);
+// Delete a Telegram message with retry logic
+async function deleteTelegramMessage(messageId, retries = 2) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const response = await axios.post(`${TELEGRAM_API_URL}/deleteMessage`, {
+                chat_id: TELEGRAM_CHAT_ID,
+                message_id: messageId
+            }, {
+                timeout: 5000 // 5 second timeout
+            });
+            console.log('✅ Telegram message deleted:', messageId);
+            return response.data;
+        } catch (error) {
+            const errorCode = error.response?.data?.error_code;
+            const errorDescription = error.response?.data?.description || '';
+            
+            // Message already deleted or not found - this is fine
+            if (errorCode === 400 && errorDescription.includes('message to delete not found')) {
+                console.log('ℹ️ Message already deleted or not found:', messageId);
+                return { ok: true }; // Return success since message is gone
+            }
+            
+            // Bad request - message might be too old (48 hours limit)
+            if (errorCode === 400) {
+                console.log('⚠️ Cannot delete message (may be too old):', messageId);
+                return null;
+            }
+            
+            // Retry on network errors
+            if (attempt < retries && (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT')) {
+                console.log(`🔄 Retrying deletion (attempt ${attempt + 1}/${retries + 1})...`);
+                await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1))); // Exponential backoff
+                continue;
+            }
+            
+            // Log other errors
+            console.error('❌ Failed to delete Telegram message:', errorCode, errorDescription || error.message);
+            return null;
         }
-        return null;
     }
+    return null;
 }
 
 // Send knock notification
@@ -74,9 +99,16 @@ async function sendKnockNotification(participantName, roomId) {
 // If lastMessageId is provided, deletes the previous message first
 async function sendUserMessageNotification(participantName, roomId, message, chatHistory = [], lastMessageId = null) {
     // Delete previous message if it exists (to avoid repetitive content)
+    // Do this FIRST and wait for it to complete before sending new message
     if (lastMessageId) {
         console.log(`🗑️ Deleting previous Telegram message ${lastMessageId} for Room ${roomId}`);
-        await deleteTelegramMessage(lastMessageId);
+        const deleteResult = await deleteTelegramMessage(lastMessageId);
+        
+        // Small delay to ensure Telegram processes the deletion
+        // This helps prevent race conditions where new message arrives before deletion completes
+        if (deleteResult) {
+            await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay
+        }
     }
     
     // Build conversation history

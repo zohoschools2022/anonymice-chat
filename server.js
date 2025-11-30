@@ -1161,11 +1161,21 @@ io.on('connection', (socket) => {
                 
                 // Send Telegram notification for user message with chat history
                 // Pass lastTelegramMessageId to delete previous message
-                sendUserMessageNotification(connection.name, roomId, data.text, room.messages, room.lastTelegramMessageId).then((result) => {
-                    if (result.success) {
-                        // Store the new message ID for next deletion
-                        room.lastTelegramMessageId = result.messageId;
-                        saveData(); // Save the updated room with message ID
+                // IMPORTANT: Store the current message ID BEFORE sending to prevent race conditions
+                const currentLastMessageId = room.lastTelegramMessageId;
+                
+                sendUserMessageNotification(connection.name, roomId, data.text, room.messages, currentLastMessageId).then((result) => {
+                    if (result.success && result.messageId) {
+                        // Atomically update the message ID - this prevents race conditions
+                        // Only update if this is still the current room state
+                        const currentRoom = chatRooms.get(roomId);
+                        if (currentRoom && currentRoom.lastTelegramMessageId === currentLastMessageId) {
+                            currentRoom.lastTelegramMessageId = result.messageId;
+                            saveData(); // Save the updated room with message ID
+                            console.log(`📱 Stored new Telegram message ID ${result.messageId} for Room ${roomId}`);
+                        } else {
+                            console.log(`⚠️ Room ${roomId} state changed during message send, not updating message ID`);
+                        }
                         
                         // Set active room context for Telegram responses
                         setActiveRoomContext({
