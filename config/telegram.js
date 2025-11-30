@@ -124,6 +124,16 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
             console.log(`🗑️ Deleting previous Telegram message ${lastMessageId} for Room ${roomId}`);
             const deleteResult = await deleteTelegramMessage(lastMessageId);
             
+            // Remove the deleted message ID from tracking (so we don't try to delete it again at the end)
+            if (roomTelegramMessageIds.has(roomId)) {
+                const messageIds = roomTelegramMessageIds.get(roomId);
+                const index = messageIds.indexOf(lastMessageId);
+                if (index > -1) {
+                    messageIds.splice(index, 1);
+                    console.log(`🗑️ Removed message ID ${lastMessageId} from tracking for Room ${roomId}`);
+                }
+            }
+            
             // Small delay to ensure Telegram processes the deletion
             // This helps prevent race conditions where new message arrives before deletion completes
             if (deleteResult) {
