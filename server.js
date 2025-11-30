@@ -72,6 +72,7 @@ function approveUserForRoom(roomId, botInfo) {
     
     // Activate the room
     room.status = 'active';
+    room.lastActivity = Date.now(); // Initialize activity tracking
     // Don't enable service globally - keep it disabled for new knocks
     
     // Set up user connection
@@ -168,6 +169,105 @@ function cleanupRoom(roomId) {
     console.log(`🧹 Room ${roomId} completely deleted and ready for reuse`);
 }
 
+// Kick user due to inactivity (5 minutes)
+function kickInactiveUser(roomId) {
+    const room = chatRooms.get(roomId);
+    if (!room || room.status !== 'active') {
+        return; // Room doesn't exist or is not active
+    }
+    
+    const participantName = room.participant?.name || 'Unknown';
+    console.log(`⏰ Kicking inactive user ${participantName} from Room ${roomId} (5 minutes of inactivity)`);
+    
+    // Send bye message to user
+    const byeMessage = {
+        id: Date.now(),
+        text: "You have been inactive for 5 minutes. The conversation has been closed.",
+        sender: 'System',
+        timestamp: new Date().toISOString(),
+        isAdmin: false
+    };
+    room.messages.push(byeMessage);
+    io.to(`room-${roomId}`).emit('new-message', byeMessage);
+    
+    // Mark room as left
+    room.status = 'left';
+    room.leftAt = Date.now();
+    
+    // Build and send final summary to Telegram
+    const { sendTelegramMessage } = require('./config/telegram');
+    const time = new Date().toLocaleTimeString('en-IN', { 
+        timeZone: 'Asia/Kolkata', 
+        hour12: true, 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    let conversationSummary = '';
+    if (room.messages && room.messages.length > 0) {
+        const filteredMessages = room.messages.filter(msg => 
+            !msg.text.includes('Welcome to the chat room') && 
+            !msg.text.includes('You have joined the chat room')
+        );
+        if (filteredMessages.length > 0) {
+            conversationSummary = '\n\n📜 <b>Final Conversation Summary:</b>\n';
+            filteredMessages.forEach(msg => {
+                let sender;
+                if (msg.isAdmin) {
+                    sender = 'Rajendran';
+                } else if (msg.sender === 'System') {
+                    sender = `[${msg.text}]`;
+                    conversationSummary += `${sender}\n`;
+                    return;
+                } else {
+                    sender = msg.sender;
+                }
+                const msgTime = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
+                    timeZone: 'Asia/Kolkata', 
+                    hour12: true, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                if (msg.sender !== 'System') {
+                    conversationSummary += `${sender} (${msgTime}): ${msg.text}\n`;
+                }
+            });
+        }
+    }
+    
+    const leaveNotification = `👋 ${participantName} from Room ${roomId} was removed due to inactivity (${time})${conversationSummary}`;
+    sendTelegramMessage(leaveNotification, process.env.TELEGRAM_CHAT_ID)
+        .then(() => console.log(`📱 Inactivity kick summary sent for ${participantName} Room ${roomId}`))
+        .catch(error => console.error(`❌ Failed to send inactivity summary:`, error));
+    
+    // Notify admin interface
+    io.to('admin-room').emit('participant-left', { 
+        roomId, 
+        participant: room.participant,
+        message: byeMessage
+    });
+    
+    // Clean up the room after a short delay (30 seconds) to allow admin to see the summary
+    setTimeout(() => {
+        cleanupRoom(roomId);
+    }, 30000); // 30 second delay before cleanup
+}
+
+// Check for inactive users and kick them
+function checkInactiveUsers() {
+    const now = Date.now();
+    const INACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
+    
+    for (let [roomId, room] of chatRooms) {
+        if (room.status === 'active' && room.lastActivity) {
+            const timeSinceActivity = now - room.lastActivity;
+            if (timeSinceActivity >= INACTIVITY_TIMEOUT) {
+                kickInactiveUser(roomId);
+            }
+        }
+    }
+}
+
 // Send message to user
 function sendMessageToUser(roomId, message, botInfo) {
     const room = chatRooms.get(roomId);
@@ -175,6 +275,9 @@ function sendMessageToUser(roomId, message, botInfo) {
         console.log(`⚠️ Room ${roomId} not found for message`);
         return;
     }
+    
+    // Update last activity timestamp (admin message counts as activity)
+    room.lastActivity = Date.now();
     
     const adminMessage = {
         id: Date.now(),
@@ -380,6 +483,7 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                     if (socket && room) {
                         // Activate the room
                         room.status = 'active';
+                        room.lastActivity = Date.now(); // Initialize activity tracking
                         
                         // Set up user connection properly
                         const participantName = response.participantName;
@@ -812,7 +916,8 @@ io.on('connection', (socket) => {
                     messages: [],
                     status: 'pending', // Mark as pending until approved
                     created: Date.now(),
-                    claimed: true // Mark as claimed immediately
+                    claimed: true, // Mark as claimed immediately
+                    lastActivity: Date.now() // Track last activity for inactivity timeout
                 };
                 
                 // Set the room immediately to claim it
@@ -910,6 +1015,7 @@ io.on('connection', (socket) => {
         if (roomId && serviceEnabled) {
             const newRoom = chatRooms.get(roomId);
             newRoom.status = 'active'; // Activate the room
+            newRoom.lastActivity = Date.now(); // Initialize activity tracking
             console.log(`🆕 Activated room ${roomId} for ${participantName}`);
             console.log(`🆕 Room messages count: ${newRoom.messages.length}`);
 
@@ -1022,8 +1128,11 @@ io.on('connection', (socket) => {
             const roomId = data.roomId;
             const room = chatRooms.get(roomId);
             if (room) {
-                                       room.messages.push(message);
-                       saveData();
+                // Update last activity timestamp (admin message counts as activity)
+                room.lastActivity = Date.now();
+                
+                room.messages.push(message);
+                saveData();
                 io.to(`room-${roomId}`).emit('new-message', message);
                 socket.emit('message-sent', message);
             }
@@ -1032,8 +1141,11 @@ io.on('connection', (socket) => {
             const roomId = connection.roomId;
             const room = chatRooms.get(roomId);
             if (room) {
-                                       room.messages.push(message);
-                       saveData();
+                // Update last activity timestamp
+                room.lastActivity = Date.now();
+                
+                room.messages.push(message);
+                saveData();
                 io.to(`room-${roomId}`).emit('new-message', message);
                 io.to('admin-room').emit('admin-message', { roomId, message });
                 socket.emit('message-sent', message);
@@ -1423,6 +1535,12 @@ server.listen(PORT, () => {
     console.log(`🔐 ADMIN URL: https://web-production-8d6b4.up.railway.app/admin/${ADMIN_URL}`);
     console.log(`🚪 Knock URL: https://web-production-8d6b4.up.railway.app/knock`);
     console.log('='.repeat(80));
+    
+    // Set up periodic check for inactive users (every minute)
+    setInterval(() => {
+        checkInactiveUsers();
+    }, 60000); // Check every 60 seconds (1 minute)
+    console.log('⏰ Inactivity checker started (5 minute timeout)');
 });
 
 // Export for testing
