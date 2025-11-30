@@ -1401,8 +1401,10 @@ io.on('connection', (socket) => {
                     
                     console.log(`🔌 Participant ${connection.name} disconnected from room ${roomId} - grace period started`);
                 } else if (room && room.status === 'pending') {
-                    // For pending rooms, just clean up without adding "left" message
-                    console.log(`🔌 Participant ${connection.name} disconnected from pending room ${roomId} - no "left" message added`);
+                    // For pending rooms, clean up immediately (no grace period needed)
+                    console.log(`🔌 Participant ${connection.name} disconnected from pending room ${roomId} - cleaning up immediately`);
+                    // Clean up the pending room immediately
+                    cleanupRoom(roomId);
                 } else {
                     console.log(`⚠️ Room ${roomId} not found or not active, skipping participant-left event`);
                 }
