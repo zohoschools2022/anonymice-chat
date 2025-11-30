@@ -547,8 +547,96 @@
             updatePresenceIndicator(data.status, data.admin || 'Rajendran');
         });
     
-        socket.on('disconnect', () => {
-            addSystemMessage('Connection lost. Please refresh the page.');
+        // Track connection state and error message element
+        let disconnectTimeout = null;
+        let connectionErrorElement = null;
+        let isReconnecting = false;
+    
+        socket.on('disconnect', (reason) => {
+            console.log('Socket disconnected, reason:', reason);
+            
+            // Don't show error for intentional disconnects (like page navigation)
+            if (reason === 'io client disconnect') {
+                return;
+            }
+            
+            // Set reconnecting flag
+            isReconnecting = true;
+            
+            // Wait 3 seconds before showing error (give time for reconnection)
+            disconnectTimeout = setTimeout(() => {
+                if (isReconnecting && !socket.connected) {
+                    // Only show error if still disconnected after 3 seconds
+                    connectionErrorElement = addSystemMessage('Connection lost. Attempting to reconnect...');
+                }
+            }, 3000);
+        });
+        
+        socket.on('connect', () => {
+            console.log('Socket connected');
+            
+            // Clear reconnecting flag
+            isReconnecting = false;
+            
+            // Clear disconnect timeout if it exists
+            if (disconnectTimeout) {
+                clearTimeout(disconnectTimeout);
+                disconnectTimeout = null;
+            }
+            
+            // Remove error message if it exists
+            if (connectionErrorElement) {
+                connectionErrorElement.remove();
+                connectionErrorElement = null;
+                addSystemMessage('Connection restored!');
+            }
+            
+            // Rejoin the room if we have room info
+            if (roomId && participantName) {
+                console.log('Rejoining room after reconnect:', roomId);
+                socket.emit('join-room', { roomId, participantName });
+            }
+        });
+        
+        socket.on('reconnect', (attemptNumber) => {
+            console.log('Socket reconnected after', attemptNumber, 'attempts');
+            isReconnecting = false;
+            
+            // Clear disconnect timeout if it exists
+            if (disconnectTimeout) {
+                clearTimeout(disconnectTimeout);
+                disconnectTimeout = null;
+            }
+            
+            // Remove error message if it exists
+            if (connectionErrorElement) {
+                connectionErrorElement.remove();
+                connectionErrorElement = null;
+                addSystemMessage('Connection restored!');
+            }
+        });
+        
+        socket.on('reconnect_error', (error) => {
+            console.log('Reconnection error:', error);
+            // Keep showing error message, will be cleared on successful reconnect
+        });
+        
+        socket.on('reconnect_failed', () => {
+            console.log('Reconnection failed after all attempts');
+            isReconnecting = false;
+            
+            // Clear disconnect timeout if it exists
+            if (disconnectTimeout) {
+                clearTimeout(disconnectTimeout);
+                disconnectTimeout = null;
+            }
+            
+            // Update error message to indicate permanent failure
+            if (connectionErrorElement) {
+                connectionErrorElement.textContent = 'Connection lost. Please refresh the page.';
+            } else {
+                addSystemMessage('Connection lost. Please refresh the page.');
+            }
         });
     
         function sendMessage() {
@@ -626,6 +714,7 @@
             messageElement.textContent = text;
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return messageElement; // Return element so it can be removed later
         }
 
         function insertEmoji(emoji) {
