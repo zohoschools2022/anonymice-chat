@@ -127,55 +127,71 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
                 await new Promise(resolve => setTimeout(resolve, 300)); // 300ms delay for better reliability
             }
         }
-    
-    // Build conversation history
-    let historyText = '';
-    if (chatHistory && chatHistory.length > 0) {
-        // Filter out welcome messages and build clean history
-        const filteredHistory = chatHistory.filter(msg => 
-            !msg.text.includes('Welcome to the chat room') && 
-            !msg.text.includes('You have joined the chat room')
-        );
         
-        if (filteredHistory.length > 0) {
-            historyText = '\n\n';
-            filteredHistory.forEach(msg => {
-                let sender;
-                if (msg.isAdmin) {
-                    sender = 'Rajendran';
-                } else if (msg.sender === 'System') {
-                    sender = `[${msg.text}]`;
-                    historyText += `${sender}\n`;
-                    return; // Skip the time and colon for system messages
-                } else {
-                    sender = msg.sender;
-                }
-                
-                // Format time as HH:MM AM/PM in IST
-                const time = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
-                    timeZone: 'Asia/Kolkata',
-                    hour12: true, 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+        // Build conversation history
+        let historyText = '';
+        if (chatHistory && chatHistory.length > 0) {
+            // Filter out welcome messages and build clean history
+            const filteredHistory = chatHistory.filter(msg => 
+                !msg.text.includes('Welcome to the chat room') && 
+                !msg.text.includes('You have joined the chat room')
+            );
+            
+            if (filteredHistory.length > 0) {
+                historyText = '\n\n';
+                filteredHistory.forEach(msg => {
+                    let sender;
+                    if (msg.isAdmin) {
+                        sender = 'Rajendran';
+                    } else if (msg.sender === 'System') {
+                        sender = `[${msg.text}]`;
+                        historyText += `${sender}\n`;
+                        return; // Skip the time and colon for system messages
+                    } else {
+                        sender = msg.sender;
+                    }
+                    
+                    // Format time as HH:MM AM/PM in IST
+                    const time = new Date(msg.timestamp).toLocaleTimeString('en-IN', { 
+                        timeZone: 'Asia/Kolkata',
+                        hour12: true, 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                    
+                    if (msg.sender !== 'System') {
+                        historyText += `${sender} (${time}): ${msg.text}\n`;
+                    }
                 });
-                
-                if (msg.sender !== 'System') {
-                    historyText += `${sender} (${time}): ${msg.text}\n`;
-                }
-            });
+            }
         }
-    }
-    
-    const notification = `${participantName} from Room ${roomId}${historyText}`;
+        
+        const notification = `${participantName} from Room ${roomId}${historyText}`;
 
-    const result = await sendTelegramMessage(notification);
+        const result = await sendTelegramMessage(notification);
+        
+        // Return the message ID for context tracking
+        return {
+            success: result ? true : false,
+            messageId: result ? result.message_id : null,
+            result: result
+        };
+    })();
     
-    // Return the message ID for context tracking
-    return {
-        success: result ? true : false,
-        messageId: result ? result.message_id : null,
-        result: result
-    };
+    // Store the promise and clean it up when done
+    pendingRoomOperations.set(roomId, operationPromise);
+    
+    try {
+        const result = await operationPromise;
+        return result;
+    } finally {
+        // Remove from pending operations after a short delay to allow any immediate follow-up
+        setTimeout(() => {
+            if (pendingRoomOperations.get(roomId) === operationPromise) {
+                pendingRoomOperations.delete(roomId);
+            }
+        }, 1000);
+    }
 }
 
 // Send admin response to user
