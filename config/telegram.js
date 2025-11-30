@@ -23,7 +23,14 @@ async function sendTelegramMessage(message, options = {}) {
         };
 
         const response = await axios.post(`${TELEGRAM_API_URL}/sendMessage`, payload);
-        console.log('✅ Telegram message sent:', response.data);
+        
+        // Log the full response structure for debugging
+        if (response.data && response.data.ok && response.data.result) {
+            console.log('✅ Telegram message sent. Message ID:', response.data.result.message_id, 'Chat ID:', response.data.result.chat?.id);
+        } else {
+            console.error('⚠️ Unexpected Telegram response structure:', JSON.stringify(response.data, null, 2));
+        }
+        
         return response.data;
     } catch (error) {
         console.error('❌ Telegram message failed:', error.response?.data || error.message);
