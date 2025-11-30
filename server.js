@@ -139,6 +139,35 @@ function rejectUserForRoom(roomId, botInfo, message) {
     deleteBotForRoom(roomId);
 }
 
+// Clean up room after user leaves (delete completely to free up room number)
+function cleanupRoom(roomId) {
+    const room = chatRooms.get(roomId);
+    if (!room) {
+        console.log(`⚠️ Room ${roomId} not found for cleanup`);
+        return;
+    }
+    
+    console.log(`🧹 Cleaning up room ${roomId} (status: ${room.status})`);
+    
+    // Remove from participant mappings
+    for (const [participant, mappedRoomId] of participantRooms.entries()) {
+        if (mappedRoomId === roomId) {
+            participantRooms.delete(participant);
+            console.log(`🧹 Removed participant mapping for ${participant}`);
+            break;
+        }
+    }
+    
+    // Delete the bot for this room
+    deleteBotForRoom(roomId);
+    
+    // Completely delete the room to free up room number and memory
+    chatRooms.delete(roomId);
+    
+    saveData();
+    console.log(`🧹 Room ${roomId} completely deleted and ready for reuse`);
+}
+
 // Send message to user
 function sendMessageToUser(roomId, message, botInfo) {
     const room = chatRooms.get(roomId);
@@ -528,13 +557,19 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                             .then(() => console.log(`📱 Final conversation summary sent for kicked user ${participantName} Room ${ctx.roomId}`))
                             .catch(error => console.error(`❌ Failed to send final summary (kick):`, error));
 
+                        // Mark room as left first, then clean up after a delay
+                        roomToClose.status = 'left';
+                        roomToClose.leftAt = Date.now();
+                        
                         // Notify admin interface
                         io.to('admin-room').emit('room-closed', { roomId: ctx.roomId });
 
-                        // Clean up the room
-                        chatRooms.delete(ctx.roomId);
-                        deleteBotForRoom(ctx.roomId);
-                        console.log(`🔒 Room ${ctx.roomId} closed by admin (kick)`);
+                        // Clean up the room after a short delay (30 seconds) to allow admin to see the summary
+                        setTimeout(() => {
+                            cleanupRoom(ctx.roomId);
+                        }, 30000); // 30 second delay before cleanup
+                        
+                        console.log(`🔒 Room ${ctx.roomId} closed by admin (kick), will be cleaned up in 30 seconds`);
                     }
                     break;
                 }
@@ -762,8 +797,14 @@ io.on('connection', (socket) => {
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
             
-            // Check if room is truly available (doesn't exist OR is cleaned)
-            if (!room || room.status === 'cleaned') {
+            // Check if room is truly available (doesn't exist OR is cleaned OR is left)
+            // Rooms with status 'left' are also available for reuse
+            if (!room || room.status === 'cleaned' || room.status === 'left') {
+                // If room exists but is 'left' or 'cleaned', clean it up first
+                if (room && (room.status === 'left' || room.status === 'cleaned')) {
+                    console.log(`🧹 Room ${i} is '${room.status}', cleaning it up before reuse`);
+                    cleanupRoom(i);
+                }
                 // ATOMIC CLAIM: Create room immediately to prevent race conditions
                 const newRoom = {
                     id: i,
@@ -1149,6 +1190,11 @@ io.on('connection', (socket) => {
                     .catch(error => console.error(`❌ Failed to send final summary:`, error));
                 
                 console.log(`Participant ${connection.name} left room ${roomId}`);
+                
+                // Clean up the room after a short delay (30 seconds) to allow admin to see the summary
+                setTimeout(() => {
+                    cleanupRoom(roomId);
+                }, 30000); // 30 second delay before cleanup
             }
             
             activeConnections.delete(socket.id);
@@ -1345,6 +1391,11 @@ io.on('connection', (socket) => {
                                 .catch(error => console.error(`❌ Failed to send final summary:`, error));
                             
                             console.log(`✅ Participant ${connection.name} actually left room ${roomId} after grace period`);
+                            
+                            // Clean up the room after a short delay (30 seconds) to allow admin to see the summary
+                            setTimeout(() => {
+                                cleanupRoom(roomId);
+                            }, 30000); // 30 second delay before cleanup
                         }
                     }, 5000); // 5 second grace period
                     
