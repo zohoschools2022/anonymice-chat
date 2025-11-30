@@ -231,7 +231,14 @@
                 versionInfo.textContent = `Version: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}`;
             });
 
-        const socket = io();
+        // Configure Socket.IO with explicit reconnection settings
+        const socket = io({
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5,
+            timeout: 20000
+        });
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('messageInput');
         const participantNameSpan = document.getElementById('participantName');
