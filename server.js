@@ -338,6 +338,10 @@ function loadData() {
             // Restore chat rooms
             if (data.chatRooms) {
                 data.chatRooms.forEach(([roomId, room]) => {
+                    // Ensure lastActivity is set for active rooms (migration for old data)
+                    if (room.status === 'active' && !room.lastActivity) {
+                        room.lastActivity = Date.now();
+                    }
                     chatRooms.set(roomId, room);
                 });
                 console.log(`📂 Loaded ${chatRooms.size} chat rooms`);
