@@ -323,28 +323,58 @@ function loadData() {
             const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
             console.log('📂 Loading existing chat data...');
             
-            // Restore chat rooms
+            // Restore chat rooms - ONLY active and pending rooms (skip 'left' and 'cleaned' rooms)
+            // This prevents "ghost" rooms from persisting after users leave
             if (data.chatRooms) {
+                let loadedCount = 0;
+                let skippedCount = 0;
+                
                 data.chatRooms.forEach(([roomId, room]) => {
-                    // Ensure lastActivity is set for active rooms (migration for old data)
-                    if (room.status === 'active' && !room.lastActivity) {
-                        room.lastActivity = Date.now();
+                    // Skip rooms that should have been cleaned up
+                    if (room.status === 'left' || room.status === 'cleaned') {
+                        skippedCount++;
+                        console.log(`⏭️ Skipping ${room.status} room ${roomId} (should be cleaned up)`);
+                        return; // Don't restore this room
                     }
-                    // Ensure lastTelegramMessageId is initialized (migration for old data)
-                    if (!room.hasOwnProperty('lastTelegramMessageId')) {
-                        room.lastTelegramMessageId = null;
+                    
+                    // Only restore active or pending rooms
+                    if (room.status === 'active' || room.status === 'pending') {
+                        // Ensure lastActivity is set for active rooms (migration for old data)
+                        if (room.status === 'active' && !room.lastActivity) {
+                            room.lastActivity = Date.now();
+                        }
+                        // Ensure lastTelegramMessageId is initialized (migration for old data)
+                        if (!room.hasOwnProperty('lastTelegramMessageId')) {
+                            room.lastTelegramMessageId = null;
+                        }
+                        chatRooms.set(roomId, room);
+                        loadedCount++;
+                    } else {
+                        skippedCount++;
+                        console.log(`⏭️ Skipping room ${roomId} with unknown status: ${room.status}`);
                     }
-                    chatRooms.set(roomId, room);
                 });
-                console.log(`📂 Loaded ${chatRooms.size} chat rooms`);
+                
+                console.log(`📂 Loaded ${loadedCount} active/pending rooms, skipped ${skippedCount} left/cleaned rooms`);
             }
             
-            // Restore participant mappings
+            // Restore participant mappings - but only for rooms that still exist
             if (data.participantRooms) {
+                let loadedMappings = 0;
+                let skippedMappings = 0;
+                
                 data.participantRooms.forEach(([participant, roomId]) => {
-                    participantRooms.set(participant, roomId);
+                    // Only restore mapping if the room still exists in chatRooms
+                    if (chatRooms.has(roomId)) {
+                        participantRooms.set(participant, roomId);
+                        loadedMappings++;
+                    } else {
+                        skippedMappings++;
+                        console.log(`⏭️ Skipping participant mapping for ${participant} -> Room ${roomId} (room no longer exists)`);
+                    }
                 });
-                console.log(`📂 Loaded ${participantRooms.size} participant mappings`);
+                
+                console.log(`📂 Loaded ${loadedMappings} participant mappings, skipped ${skippedMappings} orphaned mappings`);
             }
         }
     } catch (error) {
