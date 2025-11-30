@@ -25,6 +25,24 @@ async function sendTelegramMessage(message, options = {}) {
     }
 }
 
+// Delete a Telegram message
+async function deleteTelegramMessage(messageId) {
+    try {
+        const response = await axios.post(`${TELEGRAM_API_URL}/deleteMessage`, {
+            chat_id: TELEGRAM_CHAT_ID,
+            message_id: messageId
+        });
+        console.log('✅ Telegram message deleted:', messageId);
+        return response.data;
+    } catch (error) {
+        // Don't log error if message already deleted or not found (common case)
+        if (error.response?.data?.error_code !== 400) {
+            console.error('❌ Failed to delete Telegram message:', error.response?.data || error.message);
+        }
+        return null;
+    }
+}
+
 // Send knock notification
 async function sendKnockNotification(participantName, roomId) {
     const time = new Date().toLocaleTimeString('en-IN', { 
@@ -53,7 +71,14 @@ async function sendKnockNotification(participantName, roomId) {
 }
 
 // Send user message notification with full conversation history
-async function sendUserMessageNotification(participantName, roomId, message, chatHistory = []) {
+// If lastMessageId is provided, deletes the previous message first
+async function sendUserMessageNotification(participantName, roomId, message, chatHistory = [], lastMessageId = null) {
+    // Delete previous message if it exists (to avoid repetitive content)
+    if (lastMessageId) {
+        console.log(`🗑️ Deleting previous Telegram message ${lastMessageId} for Room ${roomId}`);
+        await deleteTelegramMessage(lastMessageId);
+    }
+    
     // Build conversation history
     let historyText = '';
     if (chatHistory && chatHistory.length > 0) {
@@ -114,6 +139,7 @@ async function sendAdminResponse(roomId, message) {
 
 module.exports = {
     sendTelegramMessage,
+    deleteTelegramMessage,
     sendKnockNotification,
     sendUserMessageNotification,
     sendAdminResponse

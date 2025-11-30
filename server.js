@@ -921,7 +921,8 @@ io.on('connection', (socket) => {
                     status: 'pending', // Mark as pending until approved
                     created: Date.now(),
                     claimed: true, // Mark as claimed immediately
-                    lastActivity: Date.now() // Track last activity for inactivity timeout
+                    lastActivity: Date.now(), // Track last activity for inactivity timeout
+                    lastTelegramMessageId: null // Track last Telegram message ID for deletion
                 };
                 
                 // Set the room immediately to claim it
@@ -1155,8 +1156,13 @@ io.on('connection', (socket) => {
                 socket.emit('message-sent', message);
                 
                 // Send Telegram notification for user message with chat history
-                sendUserMessageNotification(connection.name, roomId, data.text, room.messages).then((result) => {
+                // Pass lastTelegramMessageId to delete previous message
+                sendUserMessageNotification(connection.name, roomId, data.text, room.messages, room.lastTelegramMessageId).then((result) => {
                     if (result.success) {
+                        // Store the new message ID for next deletion
+                        room.lastTelegramMessageId = result.messageId;
+                        saveData(); // Save the updated room with message ID
+                        
                         // Set active room context for Telegram responses
                         setActiveRoomContext({
                             type: 'message',
