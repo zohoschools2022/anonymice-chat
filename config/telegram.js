@@ -230,20 +230,23 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
         const result = await sendTelegramMessage(notification);
         
         // Track this message ID for final cleanup
-        if (result && result.message_id) {
+        // Telegram API returns: { ok: true, result: { message_id: 123, chat: {...}, ... } }
+        const messageId = result?.result?.message_id || result?.message_id;
+        
+        if (messageId) {
             if (!roomTelegramMessageIds.has(roomId)) {
                 roomTelegramMessageIds.set(roomId, []);
             }
-            roomTelegramMessageIds.get(roomId).push(result.message_id);
-            console.log(`📝 [Room ${roomId}] Tracking new message ID ${result.message_id} (total tracked: ${roomTelegramMessageIds.get(roomId).length})`);
+            roomTelegramMessageIds.get(roomId).push(messageId);
+            console.log(`📝 [Room ${roomId}] Tracking new message ID ${messageId} (total tracked: ${roomTelegramMessageIds.get(roomId).length})`);
         } else {
-            console.error(`❌ [Room ${roomId}] Failed to get message ID from Telegram response`);
+            console.error(`❌ [Room ${roomId}] Failed to get message ID from Telegram response. Full response:`, JSON.stringify(result, null, 2));
         }
         
         // Return the message ID for context tracking
         return {
-            success: result ? true : false,
-            messageId: result ? result.message_id : null,
+            success: result ? (result.ok !== false) : false,
+            messageId: messageId || null,
             result: result
         };
     })();
