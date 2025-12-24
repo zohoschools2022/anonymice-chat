@@ -684,25 +684,34 @@ function saveData() {
 loadData();
 console.log('📂 File persistence enabled');
 
+// CRITICAL: Register test routes BEFORE any other middleware or routes
+// This ensures they are matched first, before static files or other routes
+
 // Test endpoint to verify server is running
-// IMPORTANT: Register this BEFORE static middleware to ensure it's matched
 app.get('/test', (req, res) => {
-    console.log('🧪 /test endpoint hit!');
+    console.log('🧪 ========== /test ENDPOINT HIT ==========');
     console.log('🧪 Request method:', req.method);
     console.log('🧪 Request path:', req.path);
     console.log('🧪 Request URL:', req.url);
-    res.json({ 
-        status: 'ok', 
-        timestamp: new Date().toISOString(),
-        rooms: chatRooms.size,
-        serviceEnabled: serviceEnabled,
-        message: 'Server is running with latest code',
-        version: '20250101-route-before-static',
-        socketIoConnected: io ? 'YES' : 'NO',
-        activeConnections: io ? io.sockets.sockets.size : 0
-    });
+    console.log('🧪 Request headers:', req.headers);
+    try {
+        res.json({ 
+            status: 'ok', 
+            timestamp: new Date().toISOString(),
+            rooms: chatRooms.size,
+            serviceEnabled: serviceEnabled,
+            message: 'Server is running with latest code',
+            version: '20250101-route-before-static-v2',
+            socketIoConnected: io ? 'YES' : 'NO',
+            activeConnections: io ? io.sockets.sockets.size : 0
+        });
+        console.log('🧪 Response sent successfully');
+    } catch (error) {
+        console.error('❌ Error sending /test response:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
-console.log('✅ /test route registered');
+console.log('✅ /test route registered at line ~689');
 
 // Socket.IO connection test endpoint
 app.get('/socket-test', (req, res) => {
