@@ -1230,7 +1230,39 @@ io.on('connection', (socket) => {
         
         console.log(`✅ Successfully created and verified room ${roomId} for ${participantName} (pending approval)`);
         
-        // Create a dedicated bot for this conversation
+        // IMPORTANT: Send response to client IMMEDIATELY after room creation
+        // This ensures the client knows the room was created, even if bot creation fails
+        if (!serviceEnabled) {
+            console.log('🚫 Knock received but service is disabled - waiting for admin approval');
+            socket.emit('knock-pending', { 
+                message: "Knock received! Waiting for admin approval...",
+                roomId: roomId
+            });
+        } else {
+            // Service is enabled - activate room and notify client
+            const newRoom = chatRooms.get(roomId);
+            if (newRoom) {
+                newRoom.status = 'active';
+                newRoom.lastActivity = Date.now();
+                participantRooms.set(participantName, roomId);
+                socket.join(`room-${roomId}`);
+                
+                const welcomeMessage = {
+                    id: Date.now(),
+                    text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
+                    sender: 'System',
+                    timestamp: new Date().toISOString(),
+                    isAdmin: false
+                };
+                newRoom.messages.push(welcomeMessage);
+                saveData();
+                
+                socket.emit('room-assigned', { roomId, name: participantName });
+                console.log(`🆕 Activated room ${roomId} for ${participantName}`);
+            }
+        }
+        
+        // Create a dedicated bot for this conversation (async - doesn't block client response)
         createBotForRoom(roomId, participantName).then((botInfo) => {
             console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
             
@@ -1299,70 +1331,22 @@ io.on('connection', (socket) => {
             });
         });
         
-        // Check if service is enabled
-        if (!serviceEnabled) {
-            console.log('🚫 Knock received but service is disabled - waiting for admin approval');
-            socket.emit('knock-pending', { 
-                message: "Knock received! Waiting for admin approval...",
-                roomId: roomId
-            });
-            return;
-        }
-
-        // If service is enabled, proceed with room activation
-        if (roomId && serviceEnabled) {
-            const newRoom = chatRooms.get(roomId);
-            newRoom.status = 'active'; // Activate the room
-            newRoom.lastActivity = Date.now(); // Initialize activity tracking
-            console.log(`🆕 Activated room ${roomId} for ${participantName}`);
-            console.log(`🆕 Room messages count: ${newRoom.messages.length}`);
-
-            // Store participant-room mapping
-            participantRooms.set(participantName, roomId);
-
-            socket.join(`room-${roomId}`);
-            
-            // Add welcome message
-            const welcomeMessage = {
-                id: Date.now(),
-                text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
-                sender: 'System',
-                timestamp: new Date().toISOString(),
-                isAdmin: false
-            };
-            
-            chatRooms.get(roomId).messages.push(welcomeMessage);
-            
-            // Save data after room creation
-            saveData();
-            
-            socket.emit('room-assigned', { roomId, name: participantName });
-            
-            // Notify admin
+        // Notify admin about new participant (if service is enabled)
+        if (serviceEnabled) {
             const adminEvent = {
                 roomId,
                 participant: { name: participantName }
             };
             
             console.log('🎉 Sending new-participant event to admin-room:', adminEvent);
-            console.log('🎉 Event data structure:', JSON.stringify(adminEvent));
-            
-            // Check if admin is connected
             const adminRoom = io.sockets.adapter.rooms.get('admin-room');
             if (adminRoom && adminRoom.size > 0) {
                 io.to('admin-room').emit('new-participant', adminEvent);
                 console.log('✅ new-participant event sent to admin-room');
             } else {
                 console.log('❌ No admin connected to admin-room');
-                console.log('👥 Admin room size:', adminRoom ? adminRoom.size : 0);
             }
             
-            // Also log who's in admin-room
-            console.log('👥 Users in admin-room:', adminRoom ? adminRoom.size : 0);
-            if (adminRoom) {
-                console.log('👥 Admin room socket IDs:', Array.from(adminRoom));
-            }
-
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
             console.log(`Participant rooms:`, Array.from(participantRooms.entries()));
