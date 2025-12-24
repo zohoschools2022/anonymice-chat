@@ -235,18 +235,19 @@ function rejectUserForRoom(roomId, botInfo, message) {
 function cleanupRoom(roomId) {
     const room = chatRooms.get(roomId);
     if (!room) {
-        console.log(`⚠️ Room ${roomId} not found for cleanup`);
+        console.log(`⚠️ Room ${roomId} not found for cleanup (may already be deleted)`);
         return;
     }
     
     console.log(`🧹 Cleaning up room ${roomId} (status: ${room.status})`);
+    console.log(`🧹 Room ${roomId} exists in Map before cleanup:`, chatRooms.has(roomId));
     
     // Remove from participant mappings
     // This allows the participant name to be reused by another user
     for (const [participant, mappedRoomId] of participantRooms.entries()) {
         if (mappedRoomId === roomId) {
             participantRooms.delete(participant);
-            console.log(`🧹 Removed participant mapping for ${participant}`);
+            console.log(`🧹 Removed participant mapping for ${participant} -> Room ${roomId}`);
             break;
         }
     }
@@ -257,12 +258,25 @@ function cleanupRoom(roomId) {
     
     // Completely delete the room from the Map
     // This is the key step that frees up the room number for reuse
-    chatRooms.delete(roomId);
+    const deleted = chatRooms.delete(roomId);
+    
+    // Verify deletion
+    if (chatRooms.has(roomId)) {
+        console.error(`❌ CRITICAL: Room ${roomId} still exists in Map after delete() call!`);
+        // Force delete again
+        chatRooms.delete(roomId);
+        if (chatRooms.has(roomId)) {
+            console.error(`❌ CRITICAL: Room ${roomId} STILL exists after second delete attempt!`);
+        }
+    } else {
+        console.log(`✅ Room ${roomId} successfully deleted from Map`);
+    }
     
     // Save data to persistence
     // Note: saveData() filters out 'left' and 'cleaned' rooms, so this won't be saved
     saveData();
-    console.log(`🧹 Room ${roomId} completely deleted and ready for reuse`);
+    console.log(`🧹 Room ${roomId} cleanup complete. Room number is now available for reuse.`);
+    console.log(`🧹 Current total rooms in Map: ${chatRooms.size}`);
 }
 
 // Kick user due to inactivity (5 minutes)
@@ -1129,30 +1143,43 @@ io.on('connection', (socket) => {
         // Try to find and claim an available room atomically
         // IMPORTANT: We look for the LOWEST available room number to ensure reuse
         // This prevents room numbers from incrementing indefinitely
-        console.log(`🔍 Looking for available room for ${participantName}. Current rooms:`, Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`));
+        const currentRoomsStatus = Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`);
+        console.log(`🔍 Looking for available room for ${participantName}`);
+        console.log(`📊 Current room status:`, currentRoomsStatus);
+        console.log(`📊 Total rooms in Map: ${chatRooms.size}/${maxRooms}`);
         
+        // Count rooms by status for debugging
+        const statusCounts = {
+            active: 0,
+            pending: 0,
+            left: 0,
+            cleaned: 0
+        };
+        for (const [id, room] of chatRooms.entries()) {
+            if (room.status) statusCounts[room.status] = (statusCounts[room.status] || 0) + 1;
+        }
+        console.log(`📊 Room status breakdown:`, statusCounts);
+        
+        // First pass: Clean up any 'left' or 'cleaned' rooms we find
+        // This ensures we free up room numbers before trying to assign
+        for (let i = 1; i <= maxRooms; i++) {
+            const room = chatRooms.get(i);
+            if (room && (room.status === 'left' || room.status === 'cleaned')) {
+                console.log(`🧹 Pre-cleaning room ${i} with status '${room.status}'`);
+                cleanupRoom(i);
+                // Verify deletion
+                if (chatRooms.has(i)) {
+                    console.error(`❌ CRITICAL: Room ${i} still exists after cleanup!`);
+                }
+            }
+        }
+        
+        // Second pass: Find the lowest available room number
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
             
-            // Check if room is truly available (doesn't exist OR is cleaned OR is left)
-            // Rooms with status 'left' or 'cleaned' should be cleaned up and reused
-            if (!room || room.status === 'cleaned' || room.status === 'left') {
-                // If room exists but is 'left' or 'cleaned', clean it up first
-                // This ensures the room is completely removed before we claim it
-                if (room && (room.status === 'left' || room.status === 'cleaned')) {
-                    console.log(`🧹 Room ${i} is '${room.status}', cleaning it up before reuse`);
-                    cleanupRoom(i);
-                    
-                    // Verify the room was actually deleted
-                    // Double-check that cleanupRoom worked
-                    const roomAfterCleanup = chatRooms.get(i);
-                    if (roomAfterCleanup) {
-                        console.log(`⚠️ Room ${i} still exists after cleanup, trying next room`);
-                        continue; // Skip this room and try the next one
-                    }
-                }
-                
-                // At this point, room i should not exist in chatRooms
+            // Room is available if it doesn't exist
+            if (!room) {
                 // ATOMIC CLAIM: Create room immediately to prevent race conditions
                 const newRoom = {
                     id: i,
@@ -1169,11 +1196,11 @@ io.on('connection', (socket) => {
                 chatRooms.set(i, newRoom);
                 
                 // DOUBLE-CHECK: Verify we actually got the room (prevent race conditions)
-                // This ensures no other process claimed it between our check and set
                 const verifyRoom = chatRooms.get(i);
                 if (verifyRoom && verifyRoom.participant.name === participantName && verifyRoom.id === i) {
                     roomId = i;
-                    console.log(`🔒 ATOMICALLY CLAIMED room ${i} for ${participantName} (pending approval)`);
+                    console.log(`✅ ATOMICALLY CLAIMED room ${i} for ${participantName} (pending approval)`);
+                    console.log(`✅ Room ${i} is now in chatRooms Map`);
                     break; // Exit loop immediately after claiming - we found the lowest available room
                 } else {
                     console.log(`⚠️ Race condition detected for room ${i}, trying next room`);
@@ -1182,12 +1209,27 @@ io.on('connection', (socket) => {
                     continue; // Try next room
                 }
             } else {
-                // Room exists and is active or pending - not available
-                console.log(`Room ${i} is locked (status: ${room.status})`);
+                // Room exists - check its status
+                if (room.status === 'active' || room.status === 'pending') {
+                    // Room is in use - not available
+                    console.log(`🚫 Room ${i} is locked (status: ${room.status})`);
+                } else {
+                    // Room has unexpected status - log and skip
+                    console.log(`⚠️ Room ${i} has unexpected status: ${room.status}, skipping`);
+                }
             }
         }
 
+        // Final check: Ensure roomId is valid
         if (roomId) {
+            if (roomId < 1 || roomId > maxRooms) {
+                console.error(`❌ CRITICAL ERROR: Invalid roomId ${roomId}! Must be between 1 and ${maxRooms}`);
+                socket.emit('knock-rejected', { 
+                    message: 'System error: Invalid room assignment. Please try again.',
+                    roomId: null
+                });
+                return;
+            }
             // Create a dedicated bot for this conversation
             createBotForRoom(roomId, participantName).then((botInfo) => {
                 console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
@@ -1254,7 +1296,18 @@ io.on('connection', (socket) => {
                 return;
             }
         } else {
-            console.log(`❌ No rooms available for ${participantName}. All ${maxRooms} rooms are occupied.`);
+            // No room was found - all rooms are occupied
+            console.error(`❌ No rooms available for ${participantName}`);
+            console.error(`❌ All ${maxRooms} rooms are occupied or in an invalid state`);
+            console.error(`❌ Current rooms:`, Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`));
+            
+            // Log detailed breakdown
+            const occupiedRooms = Array.from(chatRooms.values()).filter(r => r.status === 'active' || r.status === 'pending');
+            console.error(`❌ Occupied rooms: ${occupiedRooms.length}`);
+            console.error(`❌ Rooms that should be cleaned:`, Array.from(chatRooms.entries())
+                .filter(([id, room]) => room.status === 'left' || room.status === 'cleaned')
+                .map(([id]) => id));
+            
             socket.emit('no-rooms-available');
             return;
         }
