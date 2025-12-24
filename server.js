@@ -470,16 +470,29 @@ const participantRooms = new Map();
  * - Human-readable timestamps in room IDs
  */
 function generateRoomId() {
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-    const yy = String(now.getFullYear()).slice(-2); // Last 2 digits of year
-    const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    const ss = String(now.getSeconds()).padStart(2, '0');
-    const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0'); // 3-digit random for uniqueness
-    
-    return `${dd}${mm}${yy}${hh}${min}${ss}${random}`;
+    try {
+        const now = new Date();
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+        const yy = String(now.getFullYear()).slice(-2); // Last 2 digits of year
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0'); // 3-digit random for uniqueness
+        
+        const roomId = `${dd}${mm}${yy}${hh}${min}${ss}${random}`;
+        
+        // Validate the generated ID
+        if (!roomId || roomId.length !== 17) {
+            throw new Error(`Invalid room ID generated: ${roomId}`);
+        }
+        
+        return roomId;
+    } catch (error) {
+        console.error('❌ CRITICAL: Failed to generate room ID:', error);
+        // Fallback: use timestamp + random if generation fails
+        return `${Date.now()}${Math.floor(Math.random() * 10000)}`;
+    }
 }
 
 // ============================================================================
