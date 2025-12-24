@@ -1184,80 +1184,88 @@ io.on('connection', (socket) => {
         
         // Verify the room was created successfully
         const verifyRoom = chatRooms.get(roomId);
-        if (verifyRoom && verifyRoom.participant.name === participantName && verifyRoom.id === roomId) {
-            console.log(`✅ Successfully created room ${roomId} for ${participantName} (pending approval)`);
-            // Create a dedicated bot for this conversation
-            createBotForRoom(roomId, participantName).then((botInfo) => {
-                console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
-                
-                // Send knock notification using the new bot
-                const knockMessage = `🔔 <b>Someone Knocked!</b>\n\n` +
-                                   `👤 <b>Name:</b> ${participantName}\n` +
-                                   `🏠 <b>Room:</b> ${roomId}\n` +
-                                   `💬 <b>Conversation:</b> #${botInfo.conversationNumber}\n` +
-                                   `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
-                                   `⚠️ <b>IMPORTANT:</b> Use "Reply" button to respond to THIS specific knock!\n\n` +
-                                   `Reply with:\n` +
-                                   `• <code>approve</code> - Let them in\n` +
-                                   `• <code>reject</code> - Reject them\n` +
-                                   `• <code>away</code> - Send "away" message\n` +
-                                   `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
-                                   `• <code>sleep 60</code> - Set sleep for 60 minutes\n` +
-                                   `• <code>sleep clear</code> - Clear sleep time\n` +
-                                   `• <code>sleep status</code> - Check sleep status\n` +
-                                   `• Any other text - Custom message`;
-                
-                return sendMessageWithBot(roomId, knockMessage);
-            }).then((result) => {
-                if (result.success) {
-                    // Set active room context for Telegram responses
+        if (!verifyRoom) {
+            console.error(`❌ CRITICAL: Room ${roomId} was not found in Map after creation!`);
+            socket.emit('knock-rejected', { 
+                message: 'System error: Failed to create room. Please try again.',
+                roomId: null
+            });
+            return;
+        }
+        
+        if (verifyRoom.participant.name !== participantName || String(verifyRoom.id) !== String(roomId)) {
+            console.error(`❌ CRITICAL: Room verification failed! Expected: ${participantName}/${roomId}, Got: ${verifyRoom.participant.name}/${verifyRoom.id}`);
+            socket.emit('knock-rejected', { 
+                message: 'System error: Room verification failed. Please try again.',
+                roomId: null
+            });
+            return;
+        }
+        
+        console.log(`✅ Successfully created room ${roomId} for ${participantName} (pending approval)`);
+        
+        // Create a dedicated bot for this conversation
+        createBotForRoom(roomId, participantName).then((botInfo) => {
+            console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
+            
+            // Send knock notification using the new bot
+            const knockMessage = `🔔 <b>Someone Knocked!</b>\n\n` +
+                               `👤 <b>Name:</b> ${participantName}\n` +
+                               `🏠 <b>Room:</b> ${roomId}\n` +
+                               `💬 <b>Conversation:</b> #${botInfo.conversationNumber}\n` +
+                               `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+                               `⚠️ <b>IMPORTANT:</b> Use "Reply" button to respond to THIS specific knock!\n\n` +
+                               `Reply with:\n` +
+                               `• <code>approve</code> - Let them in\n` +
+                               `• <code>reject</code> - Reject them\n` +
+                               `• <code>away</code> - Send "away" message\n` +
+                               `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
+                               `• <code>sleep 60</code> - Set sleep for 60 minutes\n` +
+                               `• <code>sleep clear</code> - Clear sleep time\n` +
+                               `• <code>sleep status</code> - Check sleep status\n` +
+                               `• Any other text - Custom message`;
+            
+            return sendMessageWithBot(roomId, knockMessage);
+        }).then((result) => {
+            if (result && result.success) {
+                // Set active room context for Telegram responses
+                setActiveRoomContext({
+                    type: 'knock',
+                    roomId: roomId,
+                    participantName: participantName,
+                    socketId: socket.id,
+                    replyMessageId: result.messageId,
+                    botInfo: result.botInfo
+                });
+                console.log('📱 Admin knock notification sent with dedicated bot');
+            } else {
+                console.error('❌ Failed to send admin knock notification');
+            }
+        }).catch(error => {
+            console.error('❌ Failed to create bot or send notification:', error);
+            // Fallback to regular notification if bot creation fails
+            sendKnockNotification(participantName, roomId).then((result) => {
+                if (result && result.success) {
                     setActiveRoomContext({
                         type: 'knock',
                         roomId: roomId,
                         participantName: participantName,
                         socketId: socket.id,
-                        replyMessageId: result.messageId,
-                        botInfo: result.botInfo
+                        replyMessageId: result.messageId
                     });
-                    console.log('📱 Admin knock notification sent with dedicated bot');
-                } else {
-                    console.error('❌ Failed to send admin knock notification');
+                    console.log('📱 Fallback notification sent');
                 }
-            }).catch(error => {
-                console.error('❌ Failed to create bot or send notification:', error);
-                // Fallback to regular notification if bot creation fails
-                sendKnockNotification(participantName, roomId).then((result) => {
-                    if (result.success) {
-                        setActiveRoomContext({
-                            type: 'knock',
-                            roomId: roomId,
-                            participantName: participantName,
-                            socketId: socket.id,
-                            replyMessageId: result.messageId
-                        });
-                        console.log('📱 Fallback notification sent');
-                    }
-                }).catch(fallbackError => {
-                    console.error('❌ Fallback notification also failed:', fallbackError);
-                });
+            }).catch(fallbackError => {
+                console.error('❌ Fallback notification also failed:', fallbackError);
             });
-            
-            // Check if service is enabled
-            if (!serviceEnabled) {
-                console.log('🚫 Knock received but service is disabled - waiting for admin approval');
-                socket.emit('knock-pending', { 
-                    message: "Knock received! Waiting for admin approval...",
-                    roomId: roomId
-                });
-                return;
-            }
-        // Room creation should always succeed now (no limits)
-        // But if for some reason it didn't, we'll handle it here
-        if (!roomId) {
-            console.error(`❌ CRITICAL: Failed to generate room ID for ${participantName}`);
-            socket.emit('knock-rejected', { 
-                message: 'System error: Failed to create room. Please try again.',
-                roomId: null
+        });
+        
+        // Check if service is enabled
+        if (!serviceEnabled) {
+            console.log('🚫 Knock received but service is disabled - waiting for admin approval');
+            socket.emit('knock-pending', { 
+                message: "Knock received! Waiting for admin approval...",
+                roomId: roomId
             });
             return;
         }
