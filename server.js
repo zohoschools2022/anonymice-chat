@@ -230,7 +230,7 @@ function rejectUserForRoom(roomId, botInfo, message) {
  * IMPORTANT: This function completely removes the room, allowing the room number
  * to be reused by the next user. Without this, room numbers would increment indefinitely.
  * 
- * @param {number} roomId - The room ID to clean up
+ * @param {number|string} roomId - The room ID to clean up (can be number for sequential or string for timestamp-based)
  */
 function cleanupRoom(roomId) {
     const room = chatRooms.get(roomId);
@@ -460,39 +460,56 @@ const activeConnections = new Map();
 const participantRooms = new Map();
 
 /**
- * Room ID Generation
- * Rooms are now identified by timestamp-based IDs: ddmmyyhhmmss + random 3 digits
- * Format: ddmmyyhhmmssXXX where XXX is a random 3-digit number to ensure uniqueness
- * Example: 150124143052847 = 15th Jan 2024, 14:30:52, with random suffix 847
+ * Room ID Generation - Sequential numbering with reuse
+ * 
+ * Finds the next available sequential room number (1, 2, 3, ...)
+ * Reuses room numbers from cleaned/left rooms to prevent infinite incrementing
+ * 
+ * Algorithm:
+ * 1. First, clean up any 'left' or 'cleaned' rooms that might still be in memory
+ * 2. Find the lowest available room number by checking existing rooms
+ * 3. If all numbers up to current max are taken, use max + 1
+ * 
  * This ensures:
- * - No upper limit on number of rooms
- * - Unique room IDs even if multiple users knock at the same second
- * - Human-readable timestamps in room IDs
+ * - Room numbers are reused when possible (efficient)
+ * - Room numbers increment only when necessary (no gaps)
+ * - No upper limit (can go as high as needed)
  */
 function generateRoomId() {
-    try {
-        const now = new Date();
-        const dd = String(now.getDate()).padStart(2, '0');
-        const mm = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-        const yy = String(now.getFullYear()).slice(-2); // Last 2 digits of year
-        const hh = String(now.getHours()).padStart(2, '0');
-        const min = String(now.getMinutes()).padStart(2, '0');
-        const ss = String(now.getSeconds()).padStart(2, '0');
-        const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0'); // 3-digit random for uniqueness
-        
-        const roomId = `${dd}${mm}${yy}${hh}${min}${ss}${random}`;
-        
-        // Validate the generated ID
-        if (!roomId || roomId.length !== 17) {
-            throw new Error(`Invalid room ID generated: ${roomId}`);
+    // First, clean up any 'left' or 'cleaned' rooms that might still be in memory
+    // This ensures we can reuse their numbers
+    const roomsToClean = [];
+    for (let [roomId, room] of chatRooms) {
+        if (room.status === 'left' || room.status === 'cleaned') {
+            roomsToClean.push(roomId);
         }
-        
-        return roomId;
-    } catch (error) {
-        console.error('❌ CRITICAL: Failed to generate room ID:', error);
-        // Fallback: use timestamp + random if generation fails
-        return `${Date.now()}${Math.floor(Math.random() * 10000)}`;
     }
+    
+    // Clean up these rooms
+    for (const roomId of roomsToClean) {
+        console.log(`🧹 Pre-cleanup: Removing ${room.status} room ${roomId} before finding available room`);
+        cleanupRoom(roomId);
+    }
+    
+    // Find the lowest available room number
+    // Start from 1 and find the first number that's not in use
+    let roomId = 1;
+    const maxAttempts = 10000; // Safety limit (should never be reached)
+    let attempts = 0;
+    
+    while (chatRooms.has(roomId) && attempts < maxAttempts) {
+        roomId++;
+        attempts++;
+    }
+    
+    if (attempts >= maxAttempts) {
+        console.error('❌ CRITICAL: Could not find available room number after 10000 attempts!');
+        // Fallback: use timestamp-based ID
+        return `fallback-${Date.now()}`;
+    }
+    
+    console.log(`🆕 Generated sequential room ID: ${roomId} (total rooms: ${chatRooms.size})`);
+    return roomId;
 }
 
 // ============================================================================
@@ -1156,7 +1173,7 @@ io.on('connection', (socket) => {
         // This ensures the client knows we received the knock, even if something fails later
         console.log('🚨 SENDING IMMEDIATE RESPONSE TO CLIENT...');
         try {
-            // Generate room ID immediately
+            // Generate sequential room ID (finds next available number)
             roomId = generateRoomId();
             participantName = (data && data.name) ? String(data.name).trim() : `Anonymous${Math.floor(Math.random() * 1000)}`;
             
@@ -1179,6 +1196,8 @@ io.on('connection', (socket) => {
             });
             socket.join(`room-${roomId}`);
             
+            console.log(`✅ Room ${roomId} created for ${participantName} (status: ${tempRoom.status})`);
+            
             // Send response IMMEDIATELY
             if (serviceEnabled) {
                 const welcomeMessage = {
@@ -1192,13 +1211,13 @@ io.on('connection', (socket) => {
                 saveData();
                 
                 socket.emit('room-assigned', { roomId, name: participantName });
-                console.log(`✅ IMMEDIATE RESPONSE SENT: room-assigned for ${roomId}`);
+                console.log(`✅ IMMEDIATE RESPONSE SENT: room-assigned for room ${roomId}`);
             } else {
                 socket.emit('knock-pending', { 
                     message: "Knock received! Waiting for admin approval...",
                     roomId: roomId
                 });
-                console.log(`✅ IMMEDIATE RESPONSE SENT: knock-pending for ${roomId}`);
+                console.log(`✅ IMMEDIATE RESPONSE SENT: knock-pending for room ${roomId}`);
             }
             clientResponseSent = true;
             
@@ -1213,8 +1232,9 @@ io.on('connection', (socket) => {
         try {
             const clientIP = socket.handshake.address;
             
-            // If room wasn't created in immediate response, create it now
+            // Room should already be created above, but if not, create it now
             if (!roomId) {
+                console.log('⚠️ Room not created in immediate response, creating now...');
                 roomId = generateRoomId();
                 participantName = (data && data.name) ? String(data.name).trim() : `Anonymous${Math.floor(Math.random() * 1000)}`;
                 
