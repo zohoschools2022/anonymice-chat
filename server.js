@@ -448,7 +448,7 @@ const chatRooms = new Map();
  * Connection info structure:
  *   - type: 'admin' | 'participant'
  *   - name: string (participant name or admin name)
- *   - roomId: number (for participants)
+ *   - roomId: string (for participants - timestamp-based format: ddmmyyhhmmssXXX)
  */
 const activeConnections = new Map();
 
@@ -460,10 +460,27 @@ const activeConnections = new Map();
 const participantRooms = new Map();
 
 /**
- * maxRooms: Maximum number of concurrent chat rooms
- * Set to 100 to allow many simultaneous conversations
+ * Room ID Generation
+ * Rooms are now identified by timestamp-based IDs: ddmmyyhhmmss + random 3 digits
+ * Format: ddmmyyhhmmssXXX where XXX is a random 3-digit number to ensure uniqueness
+ * Example: 150124143052847 = 15th Jan 2024, 14:30:52, with random suffix 847
+ * This ensures:
+ * - No upper limit on number of rooms
+ * - Unique room IDs even if multiple users knock at the same second
+ * - Human-readable timestamps in room IDs
  */
-const maxRooms = 100;
+function generateRoomId() {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+    const yy = String(now.getFullYear()).slice(-2); // Last 2 digits of year
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0'); // 3-digit random for uniqueness
+    
+    return `${dd}${mm}${yy}${hh}${min}${ss}${random}`;
+}
 
 // ============================================================================
 // ADMIN STATUS TRACKING
@@ -971,7 +988,7 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
                     const cleanedRooms = Array.from(chatRooms.values()).filter(room => room.status === 'cleaned').length;
                     
                     const statusMessage = `📊 <b>Room Status Report</b>\n\n` +
-                        `🏠 <b>Total Rooms:</b> ${totalRooms}/${maxRooms}\n` +
+                        `🏠 <b>Total Rooms:</b> ${totalRooms} (unlimited)\n` +
                         `🟢 <b>Active:</b> ${activeRooms}\n` +
                         `⏳ <b>Pending:</b> ${pendingRooms}\n` +
                         `🚪 <b>Left:</b> ${leftRooms}\n` +
@@ -1011,8 +1028,9 @@ io.on('connection', (socket) => {
         console.log('👥 Admin joined admin-room. Total users in admin-room:', adminRoom ? adminRoom.size : 0);
         
         // Send current rooms with full data
+        // Room IDs are now strings (timestamp-based), so no need to parseInt
         const currentRooms = Array.from(chatRooms.entries()).map(([roomId, room]) => ({
-            roomId: parseInt(roomId),
+            roomId: roomId, // Keep as string (timestamp-based format)
             participant: room.participant,
             messages: room.messages
         }));
@@ -1140,96 +1158,34 @@ io.on('connection', (socket) => {
             }
         }
         
-        // Try to find and claim an available room atomically
-        // IMPORTANT: We look for the LOWEST available room number to ensure reuse
-        // This prevents room numbers from incrementing indefinitely
-        const currentRoomsStatus = Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`);
-        console.log(`🔍 Looking for available room for ${participantName}`);
-        console.log(`📊 Current room status:`, currentRoomsStatus);
-        console.log(`📊 Total rooms in Map: ${chatRooms.size}/${maxRooms}`);
+        // Generate a new unique room ID based on timestamp
+        // Format: ddmmyyhhmmssXXX (day, month, year, hour, minute, second, random 3 digits)
+        // This ensures unlimited rooms with unique, timestamp-based IDs
+        roomId = generateRoomId();
         
-        // Count rooms by status for debugging
-        const statusCounts = {
-            active: 0,
-            pending: 0,
-            left: 0,
-            cleaned: 0
+        console.log(`🆕 Generating new room for ${participantName}`);
+        console.log(`🆕 Room ID: ${roomId} (timestamp-based)`);
+        console.log(`📊 Current total rooms: ${chatRooms.size}`);
+        
+        // Create the new room immediately
+        const newRoom = {
+            id: roomId,
+            participant: { name: participantName },
+            messages: [],
+            status: 'pending', // Mark as pending until approved
+            created: Date.now(),
+            claimed: true, // Mark as claimed immediately
+            lastActivity: Date.now(), // Track last activity for inactivity timeout
+            lastTelegramMessageId: null // Track last Telegram message ID for deletion
         };
-        for (const [id, room] of chatRooms.entries()) {
-            if (room.status) statusCounts[room.status] = (statusCounts[room.status] || 0) + 1;
-        }
-        console.log(`📊 Room status breakdown:`, statusCounts);
         
-        // First pass: Clean up any 'left' or 'cleaned' rooms we find
-        // This ensures we free up room numbers before trying to assign
-        for (let i = 1; i <= maxRooms; i++) {
-            const room = chatRooms.get(i);
-            if (room && (room.status === 'left' || room.status === 'cleaned')) {
-                console.log(`🧹 Pre-cleaning room ${i} with status '${room.status}'`);
-                cleanupRoom(i);
-                // Verify deletion
-                if (chatRooms.has(i)) {
-                    console.error(`❌ CRITICAL: Room ${i} still exists after cleanup!`);
-                }
-            }
-        }
+        // Set the room in the Map
+        chatRooms.set(roomId, newRoom);
         
-        // Second pass: Find the lowest available room number
-        for (let i = 1; i <= maxRooms; i++) {
-            const room = chatRooms.get(i);
-            
-            // Room is available if it doesn't exist
-            if (!room) {
-                // ATOMIC CLAIM: Create room immediately to prevent race conditions
-                const newRoom = {
-                    id: i,
-                    participant: { name: participantName },
-                    messages: [],
-                    status: 'pending', // Mark as pending until approved
-                    created: Date.now(),
-                    claimed: true, // Mark as claimed immediately
-                    lastActivity: Date.now(), // Track last activity for inactivity timeout
-                    lastTelegramMessageId: null // Track last Telegram message ID for deletion
-                };
-                
-                // Set the room immediately to claim it atomically
-                chatRooms.set(i, newRoom);
-                
-                // DOUBLE-CHECK: Verify we actually got the room (prevent race conditions)
-                const verifyRoom = chatRooms.get(i);
-                if (verifyRoom && verifyRoom.participant.name === participantName && verifyRoom.id === i) {
-                    roomId = i;
-                    console.log(`✅ ATOMICALLY CLAIMED room ${i} for ${participantName} (pending approval)`);
-                    console.log(`✅ Room ${i} is now in chatRooms Map`);
-                    break; // Exit loop immediately after claiming - we found the lowest available room
-                } else {
-                    console.log(`⚠️ Race condition detected for room ${i}, trying next room`);
-                    // Remove the room we just created since we didn't get it
-                    chatRooms.delete(i);
-                    continue; // Try next room
-                }
-            } else {
-                // Room exists - check its status
-                if (room.status === 'active' || room.status === 'pending') {
-                    // Room is in use - not available
-                    console.log(`🚫 Room ${i} is locked (status: ${room.status})`);
-                } else {
-                    // Room has unexpected status - log and skip
-                    console.log(`⚠️ Room ${i} has unexpected status: ${room.status}, skipping`);
-                }
-            }
-        }
-
-        // Final check: Ensure roomId is valid
-        if (roomId) {
-            if (roomId < 1 || roomId > maxRooms) {
-                console.error(`❌ CRITICAL ERROR: Invalid roomId ${roomId}! Must be between 1 and ${maxRooms}`);
-                socket.emit('knock-rejected', { 
-                    message: 'System error: Invalid room assignment. Please try again.',
-                    roomId: null
-                });
-                return;
-            }
+        // Verify the room was created successfully
+        const verifyRoom = chatRooms.get(roomId);
+        if (verifyRoom && verifyRoom.participant.name === participantName && verifyRoom.id === roomId) {
+            console.log(`✅ Successfully created room ${roomId} for ${participantName} (pending approval)`);
             // Create a dedicated bot for this conversation
             createBotForRoom(roomId, participantName).then((botInfo) => {
                 console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
@@ -1295,20 +1251,14 @@ io.on('connection', (socket) => {
                 });
                 return;
             }
-        } else {
-            // No room was found - all rooms are occupied
-            console.error(`❌ No rooms available for ${participantName}`);
-            console.error(`❌ All ${maxRooms} rooms are occupied or in an invalid state`);
-            console.error(`❌ Current rooms:`, Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`));
-            
-            // Log detailed breakdown
-            const occupiedRooms = Array.from(chatRooms.values()).filter(r => r.status === 'active' || r.status === 'pending');
-            console.error(`❌ Occupied rooms: ${occupiedRooms.length}`);
-            console.error(`❌ Rooms that should be cleaned:`, Array.from(chatRooms.entries())
-                .filter(([id, room]) => room.status === 'left' || room.status === 'cleaned')
-                .map(([id]) => id));
-            
-            socket.emit('no-rooms-available');
+        // Room creation should always succeed now (no limits)
+        // But if for some reason it didn't, we'll handle it here
+        if (!roomId) {
+            console.error(`❌ CRITICAL: Failed to generate room ID for ${participantName}`);
+            socket.emit('knock-rejected', { 
+                message: 'System error: Failed to create room. Please try again.',
+                roomId: null
+            });
             return;
         }
 
@@ -1490,7 +1440,8 @@ io.on('connection', (socket) => {
     });
 
         socket.on('join-room', (data) => {
-        const roomId = parseInt(data.roomId, 10);
+        // Room IDs are now strings (timestamp-based format: ddmmyyhhmmssXXX)
+        const roomId = String(data.roomId);
         const room = chatRooms.get(roomId);
         if (!room) { 
             console.log(`⚠️ Room ${roomId} not found for join-room`);
