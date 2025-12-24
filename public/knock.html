@@ -60,7 +60,9 @@
             // Set a timeout to detect if no response is received
             const responseTimeout = setTimeout(() => {
                 console.error('❌ No response received from server after 10 seconds');
-                showStatus('❌ No response from server. Please try again.', 'error');
+                console.error('❌ This means the server handler may not be running or there is a connection issue');
+                console.error('❌ Check server logs for: "🔔 ========== KNOCK RECEIVED =========="');
+                showStatus('❌ No response from server. Please check your connection and try again.', 'error');
             }, 10000); // 10 second timeout
             
             // Clear timeout when we get any response
@@ -118,12 +120,20 @@
         });
     
         // REMOVED: no-rooms-available listener completely
-        // This event should NEVER be received - if it is, there's a bug
+        // This event should NEVER be received - if it is, there's a bug or cached code
         socket.on('no-rooms-available', () => {
             console.error('🚨 BUG DETECTED: Received no-rooms-available event!');
-            console.error('🚨 This should NEVER happen - server code may be outdated');
-            console.error('🚨 Please check server logs and ensure latest code is deployed');
-            showStatus('❌ Server error: Please contact admin. Error code: NO_ROOMS_BUG', 'error');
+            console.error('🚨 This should NEVER happen - server code may be outdated or cached');
+            console.error('🚨 Server should be sending room-assigned or knock-pending instead');
+            console.error('🚨 Please check server logs for: "✅ IMMEDIATE RESPONSE SENT"');
+            console.error('🚨 If you see this, the server is running old code - please redeploy');
+            showStatus('❌ Server error: Old code detected. Please contact admin. Error code: NO_ROOMS_BUG', 'error');
+        });
+        
+        // Also catch any other error events
+        socket.on('error', (error) => {
+            console.error('❌ Socket error:', error);
+            showStatus('❌ Connection error. Please refresh the page.', 'error');
         });
 
         socket.on('service-disabled', (data) => {
