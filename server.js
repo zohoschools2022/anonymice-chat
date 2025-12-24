@@ -1,3 +1,21 @@
+/**
+ * Anonymice Chat Server
+ * 
+ * This is the main server file for the anonymous chat application.
+ * It handles:
+ * - Socket.IO connections for real-time chat
+ * - Room management (creation, cleanup, reuse)
+ * - Admin notifications via Telegram
+ * - Message routing between participants and admin
+ * - Persistence of chat data
+ * 
+ * Architecture:
+ * - Express server for HTTP endpoints
+ * - Socket.IO for WebSocket connections
+ * - Telegram Bot API for admin notifications
+ * - File-based persistence (chat_data.json)
+ */
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -6,10 +24,20 @@ const crypto = require('crypto');
 const fs = require('fs');
 require('dotenv').config();
 
-// Admin notification integration
+// ============================================================================
+// MODULE IMPORTS - External configuration and utility modules
+// ============================================================================
+
+// Telegram integration: Send notifications to admin via Telegram
 const { sendKnockNotification, sendUserMessageNotification } = require('./config/telegram');
+
+// Telegram webhook handler: Process admin responses from Telegram
 const { handleTelegramMessage, setActiveRoomContext, clearActiveRoomContext } = require('./config/telegram-webhook');
+
+// Bot factory: Create and manage Telegram bots for each conversation
 const { createBotForRoom, sendMessageWithBot, deleteBotForRoom, getBotInfo } = require('./config/bot-factory');
+
+// Security module: Rate limiting, validation, and security checks
 const { 
     SECURITY_CONFIG, 
     checkRateLimit, 
@@ -20,7 +48,19 @@ const {
     getClientIP 
 } = require('./config/security');
 
-// Handle messages from dynamic bots
+// ============================================================================
+// BOT MESSAGE HANDLING
+// ============================================================================
+
+/**
+ * Handle messages from dynamic Telegram bots
+ * 
+ * This function processes admin responses sent via Telegram bots.
+ * Each room has its own bot instance for conversation tracking.
+ * 
+ * @param {number} roomId - The room ID this message is for
+ * @param {object} message - The Telegram message object
+ */
 function handleDynamicBotMessage(roomId, message) {
     const text = message.text;
     const botInfo = getBotInfo(roomId);
@@ -32,21 +72,25 @@ function handleDynamicBotMessage(roomId, message) {
     
     console.log(`📱 Processing message for Room ${roomId} from bot @${botInfo.botUsername}`);
     
-    // Handle different response types
+    // Handle different response types based on message content
     switch (text.toLowerCase().trim()) {
         case 'approve':
+            // Admin approved the knock - let user into the chat room
             approveUserForRoom(roomId, botInfo);
             break;
         case 'reject':
+            // Admin rejected the knock - send rejection message
             rejectUserForRoom(roomId, botInfo, 'Your request has been rejected.');
             break;
         case 'away':
+            // Admin is away - send away message
             rejectUserForRoom(roomId, botInfo, 'The admin is currently away. Please try again later.');
             break;
         default:
             // Custom message or reply to user message
+            // Check if message contains keywords for special actions
             if (text.toLowerCase().includes('approve') || text.toLowerCase().includes('reject') || text.toLowerCase().includes('away')) {
-                // Handle special cases
+                // Handle special cases where keywords are embedded in message
                 if (text.toLowerCase().includes('approve')) {
                     approveUserForRoom(roomId, botInfo);
                 } else if (text.toLowerCase().includes('reject')) {
@@ -55,14 +99,30 @@ function handleDynamicBotMessage(roomId, message) {
                     rejectUserForRoom(roomId, botInfo, 'The admin is currently away. Please try again later.');
                 }
             } else {
-                // Send message to user
+                // Regular message - send to user in the chat room
                 sendMessageToUser(roomId, text, botInfo);
             }
             break;
     }
 }
 
-// Approve user for room
+// ============================================================================
+// ROOM MANAGEMENT FUNCTIONS
+// ============================================================================
+
+/**
+ * Approve a user's knock request and activate their room
+ * 
+ * When admin approves a knock via Telegram, this function:
+ * 1. Changes room status from 'pending' to 'active'
+ * 2. Finds the user's socket connection
+ * 3. Joins them to the room
+ * 4. Sends welcome message
+ * 5. Notifies admin interface
+ * 
+ * @param {number} roomId - The room ID to approve
+ * @param {object} botInfo - The bot information for this conversation
+ */
 function approveUserForRoom(roomId, botInfo) {
     const room = chatRooms.get(roomId);
     if (!room) {
@@ -70,30 +130,34 @@ function approveUserForRoom(roomId, botInfo) {
         return;
     }
     
-    // Activate the room
+    // Activate the room - change status from 'pending' to 'active'
     room.status = 'active';
-    room.lastActivity = Date.now(); // Initialize activity tracking
-    // Don't enable service globally - keep it disabled for new knocks
+    room.lastActivity = Date.now(); // Initialize activity tracking for inactivity timeout
+    // Note: We don't enable service globally - keep it disabled for new knocks
     
-    // Set up user connection
+    // Set up user connection mapping
     const participantName = room.participant.name;
-    participantRooms.set(participantName, roomId);
+    participantRooms.set(participantName, roomId); // Map participant name to room ID
     
-    // Find the socket for this room
+    // Find the socket connection for this room
+    // We need to find the socket that belongs to this room's participant
     const socket = Array.from(io.sockets.sockets.values()).find(s => {
         const connection = activeConnections.get(s.id);
         return connection && connection.roomId === roomId;
     });
     
     if (socket) {
+        // Join the socket to the room's Socket.IO room
         socket.join(`room-${roomId}`);
+        
+        // Update the connection record
         activeConnections.set(socket.id, {
             type: 'participant',
             name: participantName,
             roomId: roomId
         });
         
-        // Add welcome message
+        // Add welcome message to the room's message history
         const welcomeMessage = {
             id: Date.now(),
             text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
@@ -103,20 +167,32 @@ function approveUserForRoom(roomId, botInfo) {
         };
         room.messages.push(welcomeMessage);
         
-        // Notify admin
+        // Notify admin interface that a new participant joined
         io.to('admin-room').emit('new-participant', {
             roomId,
             participant: { name: participantName }
         });
         
-        // Send approval to user
+        // Send approval notification to the user's socket
         socket.emit('knock-approved', { roomId });
         
         console.log(`✅ Approved ${participantName} for Room ${roomId} via bot @${botInfo.botUsername}`);
     }
 }
 
-// Reject user for room
+/**
+ * Reject a user's knock request
+ * 
+ * When admin rejects a knock via Telegram, this function:
+ * 1. Finds the user's socket connection
+ * 2. Sends rejection message to user
+ * 3. Deletes the room completely
+ * 4. Deletes the bot for this room
+ * 
+ * @param {number} roomId - The room ID to reject
+ * @param {object} botInfo - The bot information for this conversation
+ * @param {string} message - The rejection message to send to user
+ */
 function rejectUserForRoom(roomId, botInfo, message) {
     const room = chatRooms.get(roomId);
     if (!room) {
@@ -124,23 +200,38 @@ function rejectUserForRoom(roomId, botInfo, message) {
         return;
     }
     
-    // Find the socket for this room
+    // Find the socket connection for this room
     const socket = Array.from(io.sockets.sockets.values()).find(s => {
         const connection = activeConnections.get(s.id);
         return connection && connection.roomId === roomId;
     });
     
     if (socket) {
+        // Send rejection message to user
         socket.emit('knock-rejected', { message, roomId });
         console.log(`❌ Rejected user for Room ${roomId} via bot @${botInfo.botUsername}: ${message}`);
     }
     
-    // Clean up the room and bot
+    // Clean up the room and bot completely
+    // This frees up the room number for reuse
     chatRooms.delete(roomId);
     deleteBotForRoom(roomId);
 }
 
-// Clean up room after user leaves (delete completely to free up room number)
+/**
+ * Clean up a room after user leaves (delete completely to free up room number)
+ * 
+ * This is a critical function for room number reuse. When a user leaves:
+ * 1. Remove participant mapping (so name can be reused)
+ * 2. Delete the Telegram bot for this room
+ * 3. Delete the room from chatRooms Map (frees up room number)
+ * 4. Save data to persistence (excluding this deleted room)
+ * 
+ * IMPORTANT: This function completely removes the room, allowing the room number
+ * to be reused by the next user. Without this, room numbers would increment indefinitely.
+ * 
+ * @param {number} roomId - The room ID to clean up
+ */
 function cleanupRoom(roomId) {
     const room = chatRooms.get(roomId);
     if (!room) {
@@ -151,6 +242,7 @@ function cleanupRoom(roomId) {
     console.log(`🧹 Cleaning up room ${roomId} (status: ${room.status})`);
     
     // Remove from participant mappings
+    // This allows the participant name to be reused by another user
     for (const [participant, mappedRoomId] of participantRooms.entries()) {
         if (mappedRoomId === roomId) {
             participantRooms.delete(participant);
@@ -159,12 +251,16 @@ function cleanupRoom(roomId) {
         }
     }
     
-    // Delete the bot for this room
+    // Delete the Telegram bot for this room
+    // This cleans up the bot instance and conversation tracking
     deleteBotForRoom(roomId);
     
-    // Completely delete the room to free up room number and memory
+    // Completely delete the room from the Map
+    // This is the key step that frees up the room number for reuse
     chatRooms.delete(roomId);
     
+    // Save data to persistence
+    // Note: saveData() filters out 'left' and 'cleaned' rooms, so this won't be saved
     saveData();
     console.log(`🧹 Room ${roomId} completely deleted and ready for reuse`);
 }
@@ -932,18 +1028,32 @@ io.on('connection', (socket) => {
         }
         
         // Try to find and claim an available room atomically
+        // IMPORTANT: We look for the LOWEST available room number to ensure reuse
+        // This prevents room numbers from incrementing indefinitely
         console.log(`🔍 Looking for available room for ${participantName}. Current rooms:`, Array.from(chatRooms.entries()).map(([id, room]) => `${id}:${room.status}`));
+        
         for (let i = 1; i <= maxRooms; i++) {
             const room = chatRooms.get(i);
             
             // Check if room is truly available (doesn't exist OR is cleaned OR is left)
-            // Rooms with status 'left' are also available for reuse
+            // Rooms with status 'left' or 'cleaned' should be cleaned up and reused
             if (!room || room.status === 'cleaned' || room.status === 'left') {
                 // If room exists but is 'left' or 'cleaned', clean it up first
+                // This ensures the room is completely removed before we claim it
                 if (room && (room.status === 'left' || room.status === 'cleaned')) {
                     console.log(`🧹 Room ${i} is '${room.status}', cleaning it up before reuse`);
                     cleanupRoom(i);
+                    
+                    // Verify the room was actually deleted
+                    // Double-check that cleanupRoom worked
+                    const roomAfterCleanup = chatRooms.get(i);
+                    if (roomAfterCleanup) {
+                        console.log(`⚠️ Room ${i} still exists after cleanup, trying next room`);
+                        continue; // Skip this room and try the next one
+                    }
                 }
+                
+                // At this point, room i should not exist in chatRooms
                 // ATOMIC CLAIM: Create room immediately to prevent race conditions
                 const newRoom = {
                     id: i,
@@ -956,21 +1066,24 @@ io.on('connection', (socket) => {
                     lastTelegramMessageId: null // Track last Telegram message ID for deletion
                 };
                 
-                // Set the room immediately to claim it
+                // Set the room immediately to claim it atomically
                 chatRooms.set(i, newRoom);
                 
                 // DOUBLE-CHECK: Verify we actually got the room (prevent race conditions)
+                // This ensures no other process claimed it between our check and set
                 const verifyRoom = chatRooms.get(i);
-                if (verifyRoom && verifyRoom.participant.name === participantName) {
+                if (verifyRoom && verifyRoom.participant.name === participantName && verifyRoom.id === i) {
                     roomId = i;
                     console.log(`🔒 ATOMICALLY CLAIMED room ${i} for ${participantName} (pending approval)`);
-                    break; // Exit loop immediately after claiming
+                    break; // Exit loop immediately after claiming - we found the lowest available room
                 } else {
                     console.log(`⚠️ Race condition detected for room ${i}, trying next room`);
                     // Remove the room we just created since we didn't get it
                     chatRooms.delete(i);
+                    continue; // Try next room
                 }
             } else {
+                // Room exists and is active or pending - not available
                 console.log(`Room ${i} is locked (status: ${room.status})`);
             }
         }
