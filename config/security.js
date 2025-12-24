@@ -1,9 +1,40 @@
-// Security and Rate Limiting System
+/**
+ * Security and Rate Limiting System
+ * 
+ * This module provides:
+ * - Rate limiting for IP addresses and users
+ * - Message validation (XSS prevention, length limits)
+ * - Room creation validation
+ * - Webhook request validation
+ * 
+ * Protects against:
+ * - Spam/abuse
+ * - XSS attacks
+ * - Resource exhaustion
+ * - Invalid requests
+ */
+
 const crypto = require('crypto');
 
-// Rate limiting storage
-const rateLimits = new Map(); // Map of IP -> { requests: number, resetTime: number }
-const userLimits = new Map(); // Map of socketId -> { requests: number, resetTime: number }
+// ============================================================================
+// RATE LIMITING STORAGE
+// ============================================================================
+
+/**
+ * rateLimits: Map<IP_type, { requests: number, resetTime: number }>
+ * 
+ * Tracks rate limits per IP address and request type.
+ * Used to prevent abuse and spam.
+ */
+const rateLimits = new Map();
+
+/**
+ * userLimits: Map<socketId_type, { requests: number, resetTime: number }>
+ * 
+ * Tracks rate limits per user (by Socket.IO socket ID).
+ * Used to prevent individual users from spamming.
+ */
+const userLimits = new Map();
 
 // Security configuration
 const SECURITY_CONFIG = {

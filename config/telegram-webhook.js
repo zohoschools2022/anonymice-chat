@@ -1,11 +1,65 @@
-// Telegram Webhook Handler
+/**
+ * Telegram Webhook Handler Module
+ * 
+ * This module processes incoming messages from Telegram and routes them
+ * to the appropriate chat rooms. It maintains context about which room
+ * each Telegram message refers to.
+ * 
+ * Key Features:
+ * - Context tracking: Knows which room a Telegram reply refers to
+ * - Slash commands: /approve, /reject, /kick, /nudge, /status, /sleep
+ * - Fallback matching: Finds room by participant name if context is lost
+ * - Queue system: Tracks pending knocks and active message contexts
+ */
+
 const axios = require('axios');
 
-// Store active room contexts for responses (queue system)
-let activeRoomContexts = new Map(); // Map of replyMessageId -> context for message responses
-let pendingKnocks = new Map(); // Map of roomId -> context for knock responses
+// ============================================================================
+// CONTEXT TRACKING - Maps Telegram messages to chat rooms
+// ============================================================================
 
-// Handle incoming Telegram messages
+/**
+ * activeRoomContexts: Map<replyMessageId, context>
+ * 
+ * Tracks active message contexts. When admin replies to a message in Telegram,
+ * we use the reply message ID to find which room the reply is for.
+ * 
+ * Context structure:
+ *   - type: 'message'
+ *   - roomId: number
+ *   - participantName: string
+ *   - replyMessageId: number (Telegram message ID)
+ */
+let activeRoomContexts = new Map();
+
+/**
+ * pendingKnocks: Map<roomId, context>
+ * 
+ * Tracks pending knock requests. When a user knocks, we store context
+ * so we know which room to approve/reject when admin responds.
+ * 
+ * Context structure:
+ *   - type: 'knock'
+ *   - roomId: number
+ *   - participantName: string
+ *   - socketId: string (Socket.IO socket ID)
+ *   - replyMessageId: number (Telegram message ID of knock notification)
+ */
+let pendingKnocks = new Map();
+
+/**
+ * Handle incoming Telegram messages from admin
+ * 
+ * This is the main entry point for processing Telegram messages.
+ * It:
+ * 1. Parses slash commands (/approve, /kick, etc.)
+ * 2. Finds the room context for the message
+ * 3. Routes to appropriate handler
+ * 4. Returns response object for server to process
+ * 
+ * @param {object} message - Telegram message object
+ * @returns {object} - Response object with action and context
+ */
 function handleTelegramMessage(message) {
     const text = message.text;
     const chatId = message.chat.id;

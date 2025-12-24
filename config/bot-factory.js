@@ -1,11 +1,50 @@
-// Dynamic Bot Factory - Manages unlimited conversations with one bot
+/**
+ * Dynamic Bot Factory Module
+ * 
+ * This module manages Telegram bot instances for conversations.
+ * Instead of creating a new bot for each conversation, we use a single
+ * bot and track conversations by room ID.
+ * 
+ * Key Features:
+ * - Single bot for all conversations (unlimited)
+ * - Conversation numbering for tracking
+ * - Webhook management
+ * - Bot lifecycle management
+ */
+
 const axios = require('axios');
 
-// Store active conversations
-const activeConversations = new Map(); // Map of roomId -> conversation info
-let conversationCounter = 0; // Track conversation numbers
+// ============================================================================
+// CONVERSATION TRACKING
+// ============================================================================
 
-// Single bot for all conversations
+/**
+ * activeConversations: Map<roomId, conversationInfo>
+ * 
+ * Tracks all active conversations. Each room gets a conversation number
+ * for identification in Telegram notifications.
+ * 
+ * Conversation info structure:
+ *   - roomId: number
+ *   - participantName: string
+ *   - conversationNumber: number (sequential counter)
+ *   - botToken: string
+ *   - botUsername: string
+ *   - createdAt: ISO timestamp
+ *   - isActive: boolean
+ */
+const activeConversations = new Map();
+
+/**
+ * conversationCounter: Sequential counter for conversation numbers
+ * Increments with each new conversation for easy identification
+ */
+let conversationCounter = 0;
+
+/**
+ * MAIN_BOT: Single bot instance used for all conversations
+ * This avoids Telegram's bot creation limits
+ */
 const MAIN_BOT = {
     token: process.env.TELEGRAM_BOT_TOKEN,
     username: 'AnonymiceBot'

@@ -382,37 +382,124 @@ function sendMessageToUser(roomId, message, botInfo) {
     console.log(`📤 Admin message sent to Room ${roomId} via bot @${botInfo.botUsername}: ${message}`);
 }
 
+// ============================================================================
+// SERVER INITIALIZATION
+// ============================================================================
+
+// Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
+
+// Initialize Socket.IO for real-time bidirectional communication
+// This enables WebSocket connections for instant messaging
 const io = socketIo(server);
 
-// Generate a long, confusing admin URL
+// ============================================================================
+// ADMIN CONFIGURATION
+// ============================================================================
+
+/**
+ * Generate a secure, random admin URL
+ * This creates a long hex string that's hard to guess
+ * Used to protect the admin interface from unauthorized access
+ */
 const generateAdminUrl = () => {
     return crypto.randomBytes(32).toString('hex');
 };
 
-const ADMIN_URL = generateAdminUrl();
-const ADMIN_NAME = "Rajendran D";
+const ADMIN_URL = generateAdminUrl(); // Random URL generated on each server restart
+const ADMIN_NAME = "Rajendran D"; // Admin's display name
 
-// Chat state management
+// ============================================================================
+// STATE MANAGEMENT - In-Memory Data Structures
+// ============================================================================
+
+/**
+ * chatRooms: Map<roomId, roomObject>
+ * Stores all active and pending chat rooms
+ * Room object structure:
+ *   - id: number (room number, 1-100)
+ *   - participant: { name: string }
+ *   - messages: Array<messageObject>
+ *   - status: 'pending' | 'active' | 'left' | 'cleaned'
+ *   - created: timestamp
+ *   - lastActivity: timestamp (for inactivity timeout)
+ *   - lastTelegramMessageId: number (for message deletion)
+ */
 const chatRooms = new Map();
+
+/**
+ * activeConnections: Map<socketId, connectionInfo>
+ * Tracks all active Socket.IO connections
+ * Connection info structure:
+ *   - type: 'admin' | 'participant'
+ *   - name: string (participant name or admin name)
+ *   - roomId: number (for participants)
+ */
 const activeConnections = new Map();
-const participantRooms = new Map(); // Track which participant is in which room
+
+/**
+ * participantRooms: Map<participantName, roomId>
+ * Maps participant names to their room IDs
+ * Used to prevent duplicate knocks and find rooms by participant name
+ */
+const participantRooms = new Map();
+
+/**
+ * maxRooms: Maximum number of concurrent chat rooms
+ * Set to 100 to allow many simultaneous conversations
+ */
 const maxRooms = 100;
 
-// Admin status tracking
+// ============================================================================
+// ADMIN STATUS TRACKING
+// ============================================================================
+
+/**
+ * adminStatus: Tracks whether admin is active or away
+ * Used to show admin presence in the chat interface
+ */
 let adminStatus = { isActive: true, lastUpdate: new Date().toISOString() };
 
-// Service status tracking (default: OFF)
+/**
+ * serviceEnabled: Global service toggle
+ * When false, new knocks are queued for approval
+ * When true, new knocks are automatically approved
+ * Default: false (requires manual approval)
+ */
 let serviceEnabled = false;
 
-// Sleep window: during this period knocks are not forwarded and users are asked to try later
+/**
+ * sleepUntil: Sleep mode timestamp
+ * When set, knocks are blocked until this time
+ * 0 means sleep mode is not active
+ * Used when admin wants to temporarily disable new knocks
+ */
 let sleepUntil = 0; // epoch ms; 0 means not sleeping
 
-// Persistence file
+// ============================================================================
+// PERSISTENCE CONFIGURATION
+// ============================================================================
+
+/**
+ * DATA_FILE: Path to the persistence file
+ * Stores chat rooms and participant mappings to disk
+ * Allows data to survive server restarts
+ */
 const DATA_FILE = path.join(__dirname, 'chat_data.json');
 
-// Load existing data on startup
+/**
+ * Load existing data from persistence file on server startup
+ * 
+ * This function:
+ * 1. Reads chat_data.json if it exists
+ * 2. Restores only 'active' and 'pending' rooms (skips 'left' and 'cleaned')
+ * 3. Restores participant mappings (only for rooms that still exist)
+ * 4. Initializes missing fields for backward compatibility
+ * 
+ * IMPORTANT: We intentionally skip 'left' and 'cleaned' rooms to prevent
+ * "ghost rooms" from persisting. This ensures room numbers can be reused.
+ */
 function loadData() {
     try {
         if (fs.existsSync(DATA_FILE)) {
@@ -478,9 +565,21 @@ function loadData() {
     }
 }
 
-// Save data to file
-// Only save active and pending rooms (exclude 'left' and 'cleaned' rooms)
-// This prevents ghost rooms from persisting and allows room number reuse
+/**
+ * Save current state to persistence file
+ * 
+ * This function:
+ * 1. Filters out 'left' and 'cleaned' rooms before saving
+ * 2. Saves only 'active' and 'pending' rooms
+ * 3. Saves participant mappings
+ * 4. Writes to chat_data.json
+ * 
+ * IMPORTANT: We intentionally exclude 'left' and 'cleaned' rooms to prevent
+ * "ghost rooms" from persisting. This ensures:
+ * - Room numbers can be reused
+ * - No stale data accumulates
+ * - Clean state on server restart
+ */
 function saveData() {
     try {
         // Filter out 'left' and 'cleaned' rooms before saving

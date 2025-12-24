@@ -1,18 +1,71 @@
-// Telegram Bot Configuration
+/**
+ * Telegram Bot Integration Module
+ * 
+ * This module handles all Telegram Bot API interactions:
+ * - Sending messages to admin via Telegram
+ * - Deleting messages to keep chat clean
+ * - Managing message queues to prevent race conditions
+ * - Tracking message IDs for cleanup
+ * 
+ * Key Features:
+ * - Automatic deletion of old messages during conversation
+ * - Final summary that replaces all intermediate messages
+ * - Queue system to prevent concurrent message conflicts
+ */
+
 const axios = require('axios');
 
-// Telegram Bot Configuration
+// ============================================================================
+// TELEGRAM API CONFIGURATION
+// ============================================================================
+
+// Telegram Bot Token - Get from @BotFather on Telegram
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || 'YOUR_BOT_TOKEN_HERE';
+
+// Telegram Chat ID - Your personal chat ID where notifications are sent
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || 'YOUR_CHAT_ID_HERE';
+
+// Telegram API base URL for making requests
 const TELEGRAM_API_URL = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
-// Track pending message operations per room to prevent race conditions
-const pendingRoomOperations = new Map(); // roomId -> Promise
+// ============================================================================
+// MESSAGE QUEUE AND TRACKING
+// ============================================================================
 
-// Track all Telegram message IDs per room for final cleanup
-const roomTelegramMessageIds = new Map(); // roomId -> [messageId1, messageId2, ...]
+/**
+ * pendingRoomOperations: Map<roomId, Promise>
+ * 
+ * Tracks ongoing message operations per room to prevent race conditions.
+ * When a message is being sent/deleted for a room, we queue subsequent
+ * operations to ensure they happen sequentially.
+ * 
+ * This prevents issues where:
+ * - Multiple messages arrive quickly
+ * - Deletion and sending happen simultaneously
+ * - Message IDs get mixed up
+ */
+const pendingRoomOperations = new Map();
 
-// Send message to Telegram
+/**
+ * roomTelegramMessageIds: Map<roomId, [messageId1, messageId2, ...]>
+ * 
+ * Tracks all Telegram message IDs sent for each room.
+ * Used for final cleanup - when conversation ends, we delete all
+ * intermediate messages and send only the final summary.
+ * 
+ * This keeps the Telegram chat clean with only the final summary visible.
+ */
+const roomTelegramMessageIds = new Map();
+
+/**
+ * Send a message to Telegram
+ * 
+ * This is the core function for sending messages via the Telegram Bot API.
+ * 
+ * @param {string} message - The message text to send (supports HTML)
+ * @param {object} options - Additional Telegram API options (reply_to_message_id, etc.)
+ * @returns {object|null} - Telegram API response or null on error
+ */
 async function sendTelegramMessage(message, options = {}) {
     try {
         const payload = {
@@ -38,7 +91,18 @@ async function sendTelegramMessage(message, options = {}) {
     }
 }
 
-// Delete a Telegram message with retry logic
+/**
+ * Delete a Telegram message with retry logic
+ * 
+ * This function handles message deletion with:
+ * - Retry logic for network errors
+ * - Graceful handling of already-deleted messages
+ * - Handling of messages too old to delete (48 hour limit)
+ * 
+ * @param {number} messageId - The Telegram message ID to delete
+ * @param {number} retries - Number of retry attempts (default: 2)
+ * @returns {object|null} - Telegram API response or null on error
+ */
 async function deleteTelegramMessage(messageId, retries = 2) {
     if (!messageId) {
         console.error('❌ deleteTelegramMessage called with null/undefined messageId');
@@ -112,7 +176,16 @@ async function deleteTelegramMessage(messageId, retries = 2) {
     return null;
 }
 
-// Send knock notification
+/**
+ * Send a knock notification to admin via Telegram
+ * 
+ * When a user knocks (requests to join), this sends a notification
+ * to the admin with options to approve/reject.
+ * 
+ * @param {string} participantName - Name of the person knocking
+ * @param {number} roomId - The room ID assigned to this knock
+ * @returns {object} - { success: boolean, messageId: number, result: object }
+ */
 async function sendKnockNotification(participantName, roomId) {
     const time = new Date().toLocaleTimeString('en-IN', { 
         timeZone: 'Asia/Kolkata',
@@ -139,9 +212,26 @@ async function sendKnockNotification(participantName, roomId) {
     };
 }
 
-// Send user message notification with full conversation history
-// If lastMessageId is provided, deletes the previous message first
-// Uses a queue per room to prevent race conditions
+/**
+ * Send user message notification with full conversation history
+ * 
+ * This function sends a notification to admin when a user sends a message.
+ * It includes the full conversation history and automatically deletes
+ * the previous notification to keep Telegram chat clean.
+ * 
+ * Key features:
+ * - Deletes previous message if lastMessageId is provided
+ * - Queues operations per room to prevent race conditions
+ * - Tracks message IDs for final cleanup
+ * - Includes full conversation history in notification
+ * 
+ * @param {string} participantName - Name of the participant sending message
+ * @param {number} roomId - The room ID
+ * @param {string} message - The new message text
+ * @param {Array} chatHistory - Full conversation history
+ * @param {number|null} lastMessageId - Previous Telegram message ID to delete
+ * @returns {object} - { success: boolean, messageId: number, result: object }
+ */
 async function sendUserMessageNotification(participantName, roomId, message, chatHistory = [], lastMessageId = null) {
     // Wait for any pending operation for this room to complete
     // This prevents race conditions when multiple messages arrive quickly
@@ -267,8 +357,23 @@ async function sendUserMessageNotification(participantName, roomId, message, cha
     }
 }
 
-// Send final conversation summary and delete all intermediate messages
-// This leaves only the final summary in Telegram
+/**
+ * Send final conversation summary and delete all intermediate messages
+ * 
+ * When a conversation ends (user leaves, kicked, or inactive), this function:
+ * 1. Waits for any pending operations to complete
+ * 2. Deletes all intermediate Telegram messages for this room
+ * 3. Sends a final summary message
+ * 4. Clears the message ID tracking for this room
+ * 
+ * This ensures the Telegram chat shows only the final summary,
+ * not all the intermediate notifications.
+ * 
+ * @param {string} participantName - Name of the participant
+ * @param {number} roomId - The room ID
+ * @param {string} conversationSummary - The final summary text
+ * @returns {object} - { success: boolean, messageId: number, result: object }
+ */
 async function sendFinalConversationSummary(participantName, roomId, conversationSummary) {
     const time = new Date().toLocaleTimeString('en-IN', { 
         timeZone: 'Asia/Kolkata',
