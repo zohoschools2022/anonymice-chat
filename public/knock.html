@@ -44,23 +44,62 @@
                 return;
             }
     
+            // Check socket connection before sending
+            if (!socket.connected) {
+                console.error('❌ Socket not connected!');
+                showStatus('❌ Not connected to server. Please refresh the page.', 'error');
+                return;
+            }
+            
+            console.log('🔨 Sending knock event with name:', name);
+            console.log('🔨 Socket connected:', socket.connected);
+            console.log('🔨 Socket ID:', socket.id);
+            
             showStatus('🔨 Knocking...', 'info');
+            
+            // Set a timeout to detect if no response is received
+            const responseTimeout = setTimeout(() => {
+                console.error('❌ No response received from server after 10 seconds');
+                showStatus('❌ No response from server. Please try again.', 'error');
+            }, 10000); // 10 second timeout
+            
+            // Clear timeout when we get any response
+            const clearTimeoutOnResponse = () => {
+                clearTimeout(responseTimeout);
+            };
+            
+            socket.once('room-assigned', clearTimeoutOnResponse);
+            socket.once('knock-pending', clearTimeoutOnResponse);
+            socket.once('knock-rejected', clearTimeoutOnResponse);
+            
             socket.emit('knock', { name });
         });
     
+        // Debug socket connection
+        socket.on('connect', () => {
+            console.log('✅ Socket connected:', socket.id);
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('❌ Socket disconnected');
+            showStatus('❌ Connection lost. Please refresh the page.', 'error');
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('❌ Socket connection error:', error);
+            showStatus('❌ Connection error. Please refresh the page.', 'error');
+        });
+        
         socket.on('room-assigned', (data) => {
+            console.log('✅ Received room-assigned:', data);
             showStatus(`✅ Assigned to room ${data.roomId} as ${data.name}`, 'success');
             setTimeout(() => {
                 window.location.href = `/chat?room=${data.roomId}&name=${encodeURIComponent(data.name)}`;
             }, 2000);
         });
     
-        // Removed: no-rooms-available event (rooms are now unlimited)
-        // If you see this error, it means the server failed to create a room
-        socket.on('no-rooms-available', () => {
-            console.error('⚠️ Received no-rooms-available event - this should not happen with unlimited rooms');
-            showStatus('❌ System error: Failed to create room. Please try again.', 'error');
-        });
+        // REMOVED: no-rooms-available listener (server never emits this anymore)
+        // If you see "No rooms available" error, it's likely a connection issue
 
         socket.on('service-disabled', (data) => {
             showStatus(`🐱 ${data.message}`, 'error');
