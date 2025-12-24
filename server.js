@@ -679,14 +679,19 @@ console.log('📂 File persistence enabled');
 // IMPORTANT: Register this BEFORE static middleware to ensure it's matched
 app.get('/test', (req, res) => {
     console.log('🧪 /test endpoint hit!');
+    console.log('🧪 Request method:', req.method);
+    console.log('🧪 Request path:', req.path);
+    console.log('🧪 Request URL:', req.url);
     res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
         rooms: chatRooms.size,
         serviceEnabled: serviceEnabled,
-        message: 'Server is running with latest code'
+        message: 'Server is running with latest code',
+        version: '20250101-route-before-static'
     });
 });
+console.log('✅ /test route registered');
 
 // Serve static files (after specific routes)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -1928,6 +1933,13 @@ io.on('connection', (socket) => {
     });
 });
 
+// Add catch-all route for debugging (after all other routes)
+app.use((req, res, next) => {
+    console.log(`🔍 Unmatched route: ${req.method} ${req.path} ${req.url}`);
+    console.log(`🔍 Registered routes check: /test route should be available`);
+    next(); // Let Express continue to 404 handler
+});
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log('='.repeat(80));
@@ -1938,6 +1950,7 @@ server.listen(PORT, () => {
     console.log(`📡 Socket.IO initialized: ${io ? 'YES' : 'NO'}`);
     console.log(`📊 Current rooms: ${chatRooms.size}`);
     console.log(`🔌 Service enabled: ${serviceEnabled}`);
+    console.log(`✅ /test route registered: YES`);
     console.log('='.repeat(80));
     console.log('✅ Server is ready to accept connections!');
     
