@@ -30,7 +30,23 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        console.log('🚀 Initializing Socket.IO connection...');
         const socket = io();
+        
+        // Log connection events
+        socket.on('connect', () => {
+            console.log('✅ Socket connected! ID:', socket.id);
+            console.log('✅ Socket transport:', socket.io.engine.transport.name);
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.error('❌ Socket connection error:', error);
+        });
+        
+        socket.on('disconnect', (reason) => {
+            console.log('❌ Socket disconnected. Reason:', reason);
+        });
+        
         const knockForm = document.getElementById('knockForm');
         const nameInput = document.getElementById('name');
         const statusDiv = document.getElementById('status');
@@ -51,9 +67,17 @@
                 return;
             }
             
-            console.log('🔨 Sending knock event with name:', name);
+            console.log('🔨 ========== SENDING KNOCK ==========');
+            console.log('🔨 Name:', name);
             console.log('🔨 Socket connected:', socket.connected);
             console.log('🔨 Socket ID:', socket.id);
+            console.log('🔨 Socket transport:', socket.io?.engine?.transport?.name || 'unknown');
+            
+            if (!socket.connected) {
+                console.error('❌ CRITICAL: Socket is not connected!');
+                showStatus('❌ Not connected to server. Please refresh the page.', 'error');
+                return;
+            }
             
             showStatus('🔨 Knocking...', 'info');
             

@@ -1047,8 +1047,27 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-    console.log('New connection:', socket.id);
+    console.log('🔌 ========== NEW SOCKET CONNECTION ==========');
+    console.log('🔌 Socket ID:', socket.id);
+    console.log('🔌 Socket connected:', socket.connected);
+    console.log('🔌 Socket handshake:', {
+        address: socket.handshake.address,
+        headers: socket.handshake.headers,
+        query: socket.handshake.query
+    });
 
+    // Log all socket events for debugging
+    const originalEmit = socket.emit;
+    socket.emit = function(event, ...args) {
+        console.log(`📤 [Socket ${socket.id}] Emitting event: ${event}`, args.length > 0 ? JSON.stringify(args[0]).substring(0, 100) : '');
+        return originalEmit.apply(this, [event, ...args]);
+    };
+    
+    // Log socket disconnection
+    socket.on('disconnect', (reason) => {
+        console.log(`🔌 Socket ${socket.id} disconnected. Reason: ${reason}`);
+    });
+    
     // Handle admin connection
     socket.on('admin-connect', () => {
         console.log('🔐 Admin connecting with socket ID:', socket.id);
@@ -1136,19 +1155,23 @@ io.on('connection', (socket) => {
     });
 
     // Handle participant knock - COMPLETE REWRITE: Simple, bulletproof logic
+    console.log('📝 Registering knock handler for socket:', socket.id);
     socket.on('knock', (data) => {
+        console.log('🔔 ========== KNOCK RECEIVED ==========');
+        console.log('🔔 Socket ID:', socket.id);
+        console.log('🔔 Socket connected:', socket.connected);
+        console.log('🔔 Data received:', JSON.stringify(data));
+        console.log('🔔 Data type:', typeof data);
+        console.log('🔔 Data keys:', data ? Object.keys(data) : 'null');
+        
         // CRITICAL: Send acknowledgment immediately to prove handler is running
         try {
             socket.emit('knock-acknowledged', { received: true, timestamp: Date.now() });
             console.log('✅ Sent immediate acknowledgment to client');
         } catch (ackErr) {
             console.error('❌ CRITICAL: Failed to send acknowledgment:', ackErr);
+            console.error('❌ Acknowledgment error stack:', ackErr.stack);
         }
-        
-        console.log('🔔 ========== KNOCK RECEIVED ==========');
-        console.log('🔔 Data:', JSON.stringify(data));
-        console.log('🔔 Socket ID:', socket.id);
-        console.log('🔔 Socket connected:', socket.connected);
         
         let participantName = null;
         let roomId = null;
