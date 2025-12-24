@@ -1186,6 +1186,8 @@ io.on('connection', (socket) => {
         const verifyRoom = chatRooms.get(roomId);
         if (!verifyRoom) {
             console.error(`❌ CRITICAL: Room ${roomId} was not found in Map after creation!`);
+            console.error(`❌ chatRooms Map size: ${chatRooms.size}`);
+            console.error(`❌ chatRooms keys:`, Array.from(chatRooms.keys()));
             socket.emit('knock-rejected', { 
                 message: 'System error: Failed to create room. Please try again.',
                 roomId: null
@@ -1193,8 +1195,9 @@ io.on('connection', (socket) => {
             return;
         }
         
-        if (verifyRoom.participant.name !== participantName || String(verifyRoom.id) !== String(roomId)) {
-            console.error(`❌ CRITICAL: Room verification failed! Expected: ${participantName}/${roomId}, Got: ${verifyRoom.participant.name}/${verifyRoom.id}`);
+        // Verify room properties match
+        if (!verifyRoom.participant || verifyRoom.participant.name !== participantName) {
+            console.error(`❌ CRITICAL: Room participant mismatch! Expected: ${participantName}, Got: ${verifyRoom.participant?.name || 'undefined'}`);
             socket.emit('knock-rejected', { 
                 message: 'System error: Room verification failed. Please try again.',
                 roomId: null
@@ -1202,7 +1205,16 @@ io.on('connection', (socket) => {
             return;
         }
         
-        console.log(`✅ Successfully created room ${roomId} for ${participantName} (pending approval)`);
+        if (String(verifyRoom.id) !== String(roomId)) {
+            console.error(`❌ CRITICAL: Room ID mismatch! Expected: ${roomId}, Got: ${verifyRoom.id}`);
+            socket.emit('knock-rejected', { 
+                message: 'System error: Room ID verification failed. Please try again.',
+                roomId: null
+            });
+            return;
+        }
+        
+        console.log(`✅ Successfully created and verified room ${roomId} for ${participantName} (pending approval)`);
         
         // Create a dedicated bot for this conversation
         createBotForRoom(roomId, participantName).then((botInfo) => {
