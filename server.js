@@ -496,7 +496,7 @@ function generateRoomId() {
     // Find the lowest available room number
     // Start from 1 and find the first number that's not in use
     let roomId = 1;
-    const maxAttempts = 10000; // Safety limit (should never be reached)
+    const maxAttempts = 10000; // Upper limit: 10,000 rooms (safety limit - should never be reached in practice)
     let attempts = 0;
     
     while (chatRooms.has(roomId) && attempts < maxAttempts) {
