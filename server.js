@@ -1116,149 +1116,113 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle participant knock
+    // Handle participant knock - COMPLETE REWRITE: Simple, bulletproof logic
     socket.on('knock', (data) => {
+        console.log('🔔 ========== KNOCK RECEIVED ==========');
+        console.log('🔔 Data:', JSON.stringify(data));
+        
+        let participantName = null;
+        let roomId = null;
+        let clientResponseSent = false;
+        
+        // Helper function to ensure client always gets a response
+        const sendClientResponse = (event, payload) => {
+            if (clientResponseSent) {
+                console.log(`⚠️ Client response already sent, skipping ${event}`);
+                return;
+            }
+            try {
+                socket.emit(event, payload);
+                clientResponseSent = true;
+                console.log(`✅ CLIENT RESPONSE SENT: ${event}`, payload);
+            } catch (err) {
+                console.error(`❌ Failed to send ${event} to client:`, err);
+            }
+        };
+        
         try {
             const clientIP = socket.handshake.address;
-        
-        // Validate room creation
-        const roomValidation = validateRoomCreation(clientIP, socket.id);
-        if (!roomValidation.valid) {
-            console.log(`🚫 Knock rejected for ${clientIP}: ${roomValidation.error}`);
-            socket.emit('knock-rejected', { 
-                message: roomValidation.error,
-                resetTime: roomValidation.resetTime
-            });
-            return;
-        }
-        
-        // Validate participant name
-        const nameValidation = validateMessage(data.name || '');
-        if (!nameValidation.valid) {
-            console.log(`🚫 Invalid name from ${clientIP}: ${nameValidation.error}`);
-            socket.emit('knock-rejected', { 
-                message: 'Invalid name provided',
-                resetTime: null
-            });
-            return;
-        }
-
-        // Respect sleep window: do not forward knocks, inform the user
-        const now = Date.now();
-        if (sleepUntil && now < sleepUntil) {
-            const remainingMs = sleepUntil - now;
-            const remainingMin = Math.max(1, Math.ceil(remainingMs / 60000));
-            const msg = `Rajendran is busy elsewhere. Please try again after ${remainingMin} minute${remainingMin > 1 ? 's' : ''}.`;
-            console.log(`😴 Knock blocked due to sleep window (${remainingMin}m left) from ${clientIP}`);
-            socket.emit('knock-rejected', { 
-                message: msg
-            });
-            return;
-        }
-        
-        // Always send Telegram notification first, regardless of service status
-        let roomId = null;
-        let participantName = data.name || `Anonymous${Math.floor(Math.random() * 1000)}`;
-        
-        // Check if this user already has a pending knock
-        for (let [existingRoomId, room] of chatRooms) {
-            if (room.participant && room.participant.name === participantName && room.status === 'pending') {
-                console.log(`⚠️ User ${participantName} already has a pending knock in Room ${existingRoomId}`);
-                socket.emit('knock-pending', { 
-                    message: "You already have a pending request. Please wait for approval or try again later.",
-                    roomId: existingRoomId
+            participantName = (data && data.name) ? String(data.name).trim() : `Anonymous${Math.floor(Math.random() * 1000)}`;
+            
+            console.log(`🔔 Processing knock from: ${participantName} (IP: ${clientIP})`);
+            
+            // Step 1: Rate limiting validation
+            const roomValidation = validateRoomCreation(clientIP, socket.id);
+            if (!roomValidation.valid) {
+                console.log(`🚫 Rate limit rejection: ${roomValidation.error}`);
+                sendClientResponse('knock-rejected', { 
+                    message: roomValidation.error,
+                    resetTime: roomValidation.resetTime
                 });
                 return;
             }
-        }
-        
-        // Generate a new unique room ID based on timestamp
-        // Format: ddmmyyhhmmssXXX (day, month, year, hour, minute, second, random 3 digits)
-        // This ensures unlimited rooms with unique, timestamp-based IDs
-        roomId = generateRoomId();
-        
-        console.log(`🆕 Generating new room for ${participantName}`);
-        console.log(`🆕 Room ID: ${roomId} (timestamp-based)`);
-        console.log(`📊 Current total rooms: ${chatRooms.size}`);
-        
-        // Create the new room immediately
-        const newRoom = {
-            id: roomId,
-            participant: { name: participantName },
-            messages: [],
-            status: 'pending', // Mark as pending until approved
-            created: Date.now(),
-            claimed: true, // Mark as claimed immediately
-            lastActivity: Date.now(), // Track last activity for inactivity timeout
-            lastTelegramMessageId: null // Track last Telegram message ID for deletion
-        };
-        
-        // Set the room in the Map
-        chatRooms.set(roomId, newRoom);
-        
-        // Verify the room was created successfully
-        const verifyRoom = chatRooms.get(roomId);
-        if (!verifyRoom) {
-            console.error(`❌ CRITICAL: Room ${roomId} was not found in Map after creation!`);
-            console.error(`❌ chatRooms Map size: ${chatRooms.size}`);
-            console.error(`❌ chatRooms keys:`, Array.from(chatRooms.keys()));
-            socket.emit('knock-rejected', { 
-                message: 'System error: Failed to create room. Please try again.',
-                roomId: null
-            });
-            return;
-        }
-        
-        // Verify room properties match
-        if (!verifyRoom.participant || verifyRoom.participant.name !== participantName) {
-            console.error(`❌ CRITICAL: Room participant mismatch! Expected: ${participantName}, Got: ${verifyRoom.participant?.name || 'undefined'}`);
-            socket.emit('knock-rejected', { 
-                message: 'System error: Room verification failed. Please try again.',
-                roomId: null
-            });
-            return;
-        }
-        
-        if (String(verifyRoom.id) !== String(roomId)) {
-            console.error(`❌ CRITICAL: Room ID mismatch! Expected: ${roomId}, Got: ${verifyRoom.id}`);
-            socket.emit('knock-rejected', { 
-                message: 'System error: Room ID verification failed. Please try again.',
-                roomId: null
-            });
-            return;
-        }
-        
-        console.log(`✅ Successfully created and verified room ${roomId} for ${participantName} (pending approval)`);
-        
-        // CRITICAL: Send response to client IMMEDIATELY after room creation
-        // This MUST happen before any async operations to ensure client always gets a response
-        try {
-            if (!serviceEnabled) {
-                console.log('🚫 Knock received but service is disabled - waiting for admin approval');
-                socket.emit('knock-pending', { 
-                    message: "Knock received! Waiting for admin approval...",
-                    roomId: roomId
+            
+            // Step 2: Name validation
+            const nameValidation = validateMessage(participantName);
+            if (!nameValidation.valid) {
+                console.log(`🚫 Name validation failed: ${nameValidation.error}`);
+                sendClientResponse('knock-rejected', { 
+                    message: 'Invalid name provided',
+                    resetTime: null
                 });
-                console.log(`✅ Sent knock-pending to client for room ${roomId}`);
-            } else {
-                // Service is enabled - activate room and notify client immediately
-                const newRoom = chatRooms.get(roomId);
-                if (!newRoom) {
-                    throw new Error(`Room ${roomId} not found after creation!`);
+                return;
+            }
+
+            // Step 3: Sleep window check
+            const now = Date.now();
+            if (sleepUntil && now < sleepUntil) {
+                const remainingMs = sleepUntil - now;
+                const remainingMin = Math.max(1, Math.ceil(remainingMs / 60000));
+                const msg = `Rajendran is busy elsewhere. Please try again after ${remainingMin} minute${remainingMin > 1 ? 's' : ''}.`;
+                console.log(`😴 Sleep window active: ${msg}`);
+                sendClientResponse('knock-rejected', { message: msg });
+                return;
+            }
+            
+            // Step 4: Check for existing pending knock
+            for (let [existingRoomId, room] of chatRooms) {
+                if (room.participant && room.participant.name === participantName && room.status === 'pending') {
+                    console.log(`⚠️ Duplicate knock detected: ${participantName} in Room ${existingRoomId}`);
+                    sendClientResponse('knock-pending', { 
+                        message: "You already have a pending request. Please wait for approval or try again later.",
+                        roomId: existingRoomId
+                    });
+                    return;
                 }
-                
-                newRoom.status = 'active';
-                newRoom.lastActivity = Date.now();
-                participantRooms.set(participantName, roomId);
-                socket.join(`room-${roomId}`);
-                
-                // Update connection mapping
-                activeConnections.set(socket.id, {
-                    type: 'participant',
-                    name: participantName,
-                    roomId: roomId
-                });
-                
+            }
+            
+            // Step 5: Generate room ID (ALWAYS SUCCEEDS - unlimited rooms)
+            roomId = generateRoomId();
+            console.log(`🆕 Generated room ID: ${roomId}`);
+            
+            // Step 6: Create room object
+            const newRoom = {
+                id: roomId,
+                participant: { name: participantName },
+                messages: [],
+                status: serviceEnabled ? 'active' : 'pending',
+                created: Date.now(),
+                lastActivity: Date.now(),
+                lastTelegramMessageId: null
+            };
+            
+            // Step 7: Store room (SYNCHRONOUS - guaranteed to work)
+            chatRooms.set(roomId, newRoom);
+            console.log(`✅ Room ${roomId} stored. Total rooms: ${chatRooms.size}`);
+            
+            // Step 8: Set up mappings (SYNCHRONOUS)
+            participantRooms.set(participantName, roomId);
+            activeConnections.set(socket.id, {
+                type: 'participant',
+                name: participantName,
+                roomId: roomId
+            });
+            socket.join(`room-${roomId}`);
+            console.log(`✅ Mappings set up for ${participantName} -> Room ${roomId}`);
+            
+            // Step 9: SEND CLIENT RESPONSE IMMEDIATELY (CRITICAL - MUST HAPPEN)
+            if (serviceEnabled) {
+                // Service enabled - activate immediately
                 const welcomeMessage = {
                     id: Date.now(),
                     text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
@@ -1269,130 +1233,102 @@ io.on('connection', (socket) => {
                 newRoom.messages.push(welcomeMessage);
                 saveData();
                 
-                // CRITICAL: Send response to client
-                socket.emit('room-assigned', { roomId, name: participantName });
-                console.log(`✅ Sent room-assigned to client for room ${roomId}`);
-                console.log(`🆕 Activated room ${roomId} for ${participantName}`);
+                sendClientResponse('room-assigned', { roomId, name: participantName });
+                console.log(`🆕 Room ${roomId} activated for ${participantName}`);
                 
                 // Notify admin
-                const adminEvent = {
-                    roomId,
-                    participant: { name: participantName }
-                };
                 const adminRoom = io.sockets.adapter.rooms.get('admin-room');
                 if (adminRoom && adminRoom.size > 0) {
-                    io.to('admin-room').emit('new-participant', adminEvent);
-                    console.log('✅ new-participant event sent to admin-room');
+                    io.to('admin-room').emit('new-participant', {
+                        roomId,
+                        participant: { name: participantName }
+                    });
                 }
-            }
-        } catch (responseError) {
-            console.error('❌ CRITICAL: Failed to send response to client:', responseError);
-            // Last resort: try to send any response
-            socket.emit('knock-rejected', { 
-                message: 'System error: Failed to process room creation. Please try again.',
-                roomId: null
-            });
-            return; // Exit early if we can't send response
-        }
-        
-        // Create a dedicated bot for this conversation (async - doesn't block client response)
-        createBotForRoom(roomId, participantName).then((botInfo) => {
-            console.log(`🤖 Created dedicated bot for ${participantName} in Room ${roomId}: @${botInfo.botUsername}`);
-            
-            // Send knock notification using the new bot
-            const knockMessage = `🔔 <b>Someone Knocked!</b>\n\n` +
-                               `👤 <b>Name:</b> ${participantName}\n` +
-                               `🏠 <b>Room:</b> ${roomId}\n` +
-                               `💬 <b>Conversation:</b> #${botInfo.conversationNumber}\n` +
-                               `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
-                               `⚠️ <b>IMPORTANT:</b> Use "Reply" button to respond to THIS specific knock!\n\n` +
-                               `Reply with:\n` +
-                               `• <code>approve</code> - Let them in\n` +
-                               `• <code>reject</code> - Reject them\n` +
-                               `• <code>away</code> - Send "away" message\n` +
-                               `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
-                               `• <code>sleep 60</code> - Set sleep for 60 minutes\n` +
-                               `• <code>sleep clear</code> - Clear sleep time\n` +
-                               `• <code>sleep status</code> - Check sleep status\n` +
-                               `• Any other text - Custom message`;
-            
-            return sendMessageWithBot(roomId, knockMessage);
-        }).then((result) => {
-            if (result && result.success) {
-                // Set active room context for Telegram responses
-                setActiveRoomContext({
-                    type: 'knock',
-                    roomId: roomId,
-                    participantName: participantName,
-                    socketId: socket.id,
-                    replyMessageId: result.messageId,
-                    botInfo: result.botInfo
-                });
-                console.log('📱 Admin knock notification sent with dedicated bot');
             } else {
-                console.error('❌ Failed to send admin knock notification');
-            }
-        }).catch(error => {
-            console.error('❌ Failed to create bot or send notification:', error);
-            // Fallback to regular notification if bot creation fails
-            sendKnockNotification(participantName, roomId).then((result) => {
-                if (result && result.success) {
-                    setActiveRoomContext({
-                        type: 'knock',
-                        roomId: roomId,
-                        participantName: participantName,
-                        socketId: socket.id,
-                        replyMessageId: result.messageId
-                    });
-                    console.log('📱 Fallback notification sent');
-                } else {
-                    // Even if fallback fails, room is created - notify user
-                    console.log('⚠️ Both bot and fallback notification failed, but room is created');
-                    socket.emit('knock-pending', { 
-                        message: "Knock received! Waiting for admin approval...",
-                        roomId: roomId
-                    });
-                }
-            }).catch(fallbackError => {
-                console.error('❌ Fallback notification also failed:', fallbackError);
-                // Even if everything fails, room is created - notify user
-                console.log('⚠️ All notification methods failed, but room is created');
-                socket.emit('knock-pending', { 
+                // Service disabled - send pending
+                sendClientResponse('knock-pending', { 
                     message: "Knock received! Waiting for admin approval...",
                     roomId: roomId
                 });
-            });
-        });
-        
-        // Notify admin about new participant (if service is enabled)
-        if (serviceEnabled) {
-            const adminEvent = {
-                roomId,
-                participant: { name: participantName }
-            };
-            
-            console.log('🎉 Sending new-participant event to admin-room:', adminEvent);
-            const adminRoom = io.sockets.adapter.rooms.get('admin-room');
-            if (adminRoom && adminRoom.size > 0) {
-                io.to('admin-room').emit('new-participant', adminEvent);
-                console.log('✅ new-participant event sent to admin-room');
-            } else {
-                console.log('❌ No admin connected to admin-room');
             }
             
-            console.log(`Participant ${participantName} assigned to room ${roomId}`);
-            console.log(`Current rooms:`, Array.from(chatRooms.keys()));
-            console.log(`Participant rooms:`, Array.from(participantRooms.entries()));
-        }
+            // Step 10: Send Telegram notification (ASYNC - non-blocking)
+            // This happens in background and failures don't affect client
+            createBotForRoom(roomId, participantName)
+                .then((botInfo) => {
+                    console.log(`🤖 Bot created: @${botInfo.botUsername}`);
+                    const knockMessage = `🔔 <b>Someone Knocked!</b>\n\n` +
+                                       `👤 <b>Name:</b> ${participantName}\n` +
+                                       `🏠 <b>Room:</b> ${roomId}\n` +
+                                       `💬 <b>Conversation:</b> #${botInfo.conversationNumber}\n` +
+                                       `⏰ <b>Time:</b> ${new Date().toLocaleString()}\n\n` +
+                                       `⚠️ <b>IMPORTANT:</b> Use "Reply" button to respond to THIS specific knock!\n\n` +
+                                       `Reply with:\n` +
+                                       `• <code>approve</code> - Let them in\n` +
+                                       `• <code>reject</code> - Reject them\n` +
+                                       `• <code>away</code> - Send "away" message\n` +
+                                       `• <code>nudge</code> - Send gentle prompt (after approval)\n` +
+                                       `• <code>sleep 60</code> - Set sleep for 60 minutes\n` +
+                                       `• <code>sleep clear</code> - Clear sleep time\n` +
+                                       `• <code>sleep status</code> - Check sleep status\n` +
+                                       `• Any other text - Custom message`;
+                    return sendMessageWithBot(roomId, knockMessage);
+                })
+                .then((result) => {
+                    if (result && result.success) {
+                        setActiveRoomContext({
+                            type: 'knock',
+                            roomId: roomId,
+                            participantName: participantName,
+                            socketId: socket.id,
+                            replyMessageId: result.messageId,
+                            botInfo: result.botInfo
+                        });
+                        console.log('📱 Telegram notification sent');
+                    } else {
+                        // Fallback
+                        return sendKnockNotification(participantName, roomId);
+                    }
+                })
+                .then((result) => {
+                    if (result && result.success && !result.botInfo) {
+                        setActiveRoomContext({
+                            type: 'knock',
+                            roomId: roomId,
+                            participantName: participantName,
+                            socketId: socket.id,
+                            replyMessageId: result.messageId
+                        });
+                        console.log('📱 Fallback Telegram notification sent');
+                    }
+                })
+                .catch((error) => {
+                    console.error('❌ Telegram notification failed (non-critical):', error.message);
+                });
+            
+            console.log(`✅ ========== KNOCK HANDLER COMPLETE ==========`);
+            
         } catch (error) {
-            // Catch any unexpected errors in the knock handler
-            console.error('❌ CRITICAL ERROR in knock handler:', error);
-            console.error('❌ Error stack:', error.stack);
-            const participantName = data?.name || 'Unknown';
-            socket.emit('knock-rejected', { 
-                message: 'System error: An unexpected error occurred. Please try again.',
-                roomId: null
-            });
+            console.error('❌ ========== CRITICAL ERROR IN KNOCK HANDLER ==========');
+            console.error('❌ Error:', error.message);
+            console.error('❌ Stack:', error.stack);
+            console.error('❌ Participant:', participantName);
+            console.error('❌ Room ID:', roomId);
+            
+            // GUARANTEE client gets a response
+            if (!clientResponseSent) {
+                if (roomId && chatRooms.has(roomId)) {
+                    sendClientResponse('knock-pending', { 
+                        message: "Knock received! Processing...",
+                        roomId: roomId
+                    });
+                } else {
+                    sendClientResponse('knock-rejected', { 
+                        message: 'System error: Failed to create room. Please try again.',
+                        roomId: null
+                    });
+                }
+            }
         }
     });
 
