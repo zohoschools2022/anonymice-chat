@@ -487,7 +487,9 @@ function generateRoomId() {
     
     // Clean up these rooms
     for (const roomId of roomsToClean) {
-        console.log(`🧹 Pre-cleanup: Removing ${room.status} room ${roomId} before finding available room`);
+        const room = chatRooms.get(roomId);
+        const status = room ? room.status : 'unknown';
+        console.log(`🧹 Pre-cleanup: Removing ${status} room ${roomId} before finding available room`);
         cleanupRoom(roomId);
     }
     
