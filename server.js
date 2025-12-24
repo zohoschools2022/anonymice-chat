@@ -406,7 +406,16 @@ const server = http.createServer(app);
 
 // Initialize Socket.IO for real-time bidirectional communication
 // This enables WebSocket connections for instant messaging
-const io = socketIo(server);
+// Configure CORS to allow connections from any origin (needed for Railway deployment)
+const io = socketIo(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+    transports: ['websocket', 'polling'] // Support both WebSocket and polling
+});
+console.log('📡 Socket.IO initialized with CORS enabled');
 
 // ============================================================================
 // ADMIN CONFIGURATION
@@ -1065,6 +1074,15 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
 
 // Socket.IO connection handling
 console.log('📡 Socket.IO server initialized and listening for connections...');
+console.log('📡 Socket.IO CORS: Enabled for all origins');
+console.log('📡 Socket.IO transports: websocket, polling');
+
+// Log connection attempts (even failed ones)
+io.engine.on('connection_error', (err) => {
+    console.error('❌ Socket.IO connection error:', err);
+    console.error('❌ Error details:', err.message, err.stack);
+});
+
 io.on('connection', (socket) => {
     console.log('🔌 ========== NEW SOCKET CONNECTION ==========');
     console.log('🔌 Socket ID:', socket.id);
@@ -1073,8 +1091,10 @@ io.on('connection', (socket) => {
     console.log('🔌 Socket handshake:', {
         address: socket.handshake.address,
         headers: socket.handshake.headers,
-        query: socket.handshake.query
+        query: socket.handshake.query,
+        url: socket.handshake.url
     });
+    console.log('🔌 Socket transport:', socket.conn.transport.name);
 
     // Log all socket events for debugging
     const originalEmit = socket.emit;
