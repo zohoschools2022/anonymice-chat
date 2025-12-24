@@ -1518,8 +1518,8 @@ io.on('connection', (socket) => {
     });
 
         socket.on('join-room', (data) => {
-        // Room IDs are now strings (timestamp-based format: ddmmyyhhmmssXXX)
-        const roomId = String(data.roomId);
+        // Room IDs are sequential numbers (1, 2, 3, ...)
+        const roomId = Number(data.roomId);
         const room = chatRooms.get(roomId);
         if (!room) { 
             console.log(`⚠️ Room ${roomId} not found for join-room`);
