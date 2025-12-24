@@ -675,18 +675,21 @@ function saveData() {
 loadData();
 console.log('📂 File persistence enabled');
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Test endpoint to verify server is running
+// IMPORTANT: Register this BEFORE static middleware to ensure it's matched
 app.get('/test', (req, res) => {
+    console.log('🧪 /test endpoint hit!');
     res.json({ 
         status: 'ok', 
         timestamp: new Date().toISOString(),
         rooms: chatRooms.size,
-        serviceEnabled: serviceEnabled
+        serviceEnabled: serviceEnabled,
+        message: 'Server is running with latest code'
     });
 });
+
+// Serve static files (after specific routes)
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.get('/', (req, res) => {
