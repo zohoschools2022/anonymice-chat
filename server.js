@@ -432,7 +432,7 @@ const ADMIN_NAME = "Rajendran D"; // Admin's display name
  * chatRooms: Map<roomId, roomObject>
  * Stores all active and pending chat rooms
  * Room object structure:
- *   - id: number (room number, 1-100)
+ *   - id: string (timestamp-based room ID: ddmmyyhhmmssXXX format)
  *   - participant: { name: string }
  *   - messages: Array<messageObject>
  *   - status: 'pending' | 'active' | 'left' | 'cleaned'
