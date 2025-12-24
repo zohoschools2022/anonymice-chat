@@ -1105,7 +1105,8 @@ io.on('connection', (socket) => {
 
     // Handle participant knock
     socket.on('knock', (data) => {
-        const clientIP = socket.handshake.address;
+        try {
+            const clientIP = socket.handshake.address;
         
         // Validate room creation
         const roomValidation = validateRoomCreation(clientIP, socket.id);
@@ -1352,6 +1353,16 @@ io.on('connection', (socket) => {
             console.log(`Participant ${participantName} assigned to room ${roomId}`);
             console.log(`Current rooms:`, Array.from(chatRooms.keys()));
             console.log(`Participant rooms:`, Array.from(participantRooms.entries()));
+        }
+        } catch (error) {
+            // Catch any unexpected errors in the knock handler
+            console.error('❌ CRITICAL ERROR in knock handler:', error);
+            console.error('❌ Error stack:', error.stack);
+            const participantName = data?.name || 'Unknown';
+            socket.emit('knock-rejected', { 
+                message: 'System error: An unexpected error occurred. Please try again.',
+                roomId: null
+            });
         }
     });
 
