@@ -1266,9 +1266,22 @@ io.on('connection', (socket) => {
                         replyMessageId: result.messageId
                     });
                     console.log('📱 Fallback notification sent');
+                } else {
+                    // Even if fallback fails, room is created - notify user
+                    console.log('⚠️ Both bot and fallback notification failed, but room is created');
+                    socket.emit('knock-pending', { 
+                        message: "Knock received! Waiting for admin approval...",
+                        roomId: roomId
+                    });
                 }
             }).catch(fallbackError => {
                 console.error('❌ Fallback notification also failed:', fallbackError);
+                // Even if everything fails, room is created - notify user
+                console.log('⚠️ All notification methods failed, but room is created');
+                socket.emit('knock-pending', { 
+                    message: "Knock received! Waiting for admin approval...",
+                    roomId: roomId
+                });
             });
         });
         
