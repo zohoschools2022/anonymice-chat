@@ -697,10 +697,24 @@ app.get('/test', (req, res) => {
         rooms: chatRooms.size,
         serviceEnabled: serviceEnabled,
         message: 'Server is running with latest code',
-        version: '20250101-route-before-static'
+        version: '20250101-route-before-static',
+        socketIoConnected: io ? 'YES' : 'NO',
+        activeConnections: io ? io.sockets.sockets.size : 0
     });
 });
 console.log('✅ /test route registered');
+
+// Socket.IO connection test endpoint
+app.get('/socket-test', (req, res) => {
+    console.log('🔌 /socket-test endpoint hit - checking Socket.IO status');
+    res.json({
+        socketIoInitialized: io ? 'YES' : 'NO',
+        activeConnections: io ? io.sockets.sockets.size : 0,
+        serverUrl: req.protocol + '://' + req.get('host'),
+        message: 'Socket.IO server is running. Check browser console for client connection status.'
+    });
+});
+console.log('✅ /socket-test route registered');
 
 // Serve static files (after specific routes)
 app.use(express.static(path.join(__dirname, 'public')));

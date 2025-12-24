@@ -31,21 +31,56 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         console.log('🚀 Initializing Socket.IO connection...');
-        const socket = io();
+        console.log('🚀 Socket.IO library loaded:', typeof io !== 'undefined' ? 'YES' : 'NO');
+        console.log('🚀 Current URL:', window.location.href);
+        
+        // Test if server is reachable first
+        fetch('/socket-test')
+            .then(res => res.json())
+            .then(data => {
+                console.log('✅ Server reachable:', data);
+            })
+            .catch(err => {
+                console.error('❌ Server not reachable:', err);
+            });
+        
+        // Initialize Socket.IO with explicit configuration
+        const socket = io({
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5,
+            timeout: 20000,
+            transports: ['websocket', 'polling']
+        });
+        
+        console.log('🚀 Socket.IO instance created');
+        console.log('🚀 Socket connected state:', socket.connected);
         
         // Log connection events
         socket.on('connect', () => {
             console.log('✅ Socket connected! ID:', socket.id);
             console.log('✅ Socket transport:', socket.io.engine.transport.name);
+            console.log('✅ Socket connected state:', socket.connected);
         });
         
         socket.on('connect_error', (error) => {
             console.error('❌ Socket connection error:', error);
+            console.error('❌ Error type:', error.type);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error description:', error.description);
         });
         
         socket.on('disconnect', (reason) => {
             console.log('❌ Socket disconnected. Reason:', reason);
         });
+        
+        // Log all socket events for debugging
+        const originalEmit = socket.emit.bind(socket);
+        socket.emit = function(event, ...args) {
+            console.log(`📤 [Client] Emitting event: ${event}`, args);
+            return originalEmit(event, ...args);
+        };
         
         const knockForm = document.getElementById('knockForm');
         const nameInput = document.getElementById('name');
