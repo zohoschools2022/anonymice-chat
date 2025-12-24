@@ -1176,7 +1176,26 @@ io.on('connection', (socket) => {
         console.log('🚨 SENDING IMMEDIATE RESPONSE TO CLIENT...');
         try {
             // Generate sequential room ID (finds next available number)
-            roomId = generateRoomId();
+            // Wrap in try-catch to handle any errors
+            try {
+                roomId = generateRoomId();
+                console.log(`✅ Generated room ID: ${roomId}`);
+            } catch (roomIdError) {
+                console.error('❌ Failed to generate room ID:', roomIdError);
+                // Fallback: use a simple incrementing counter
+                let fallbackId = 1;
+                while (chatRooms.has(fallbackId) && fallbackId < 10000) {
+                    fallbackId++;
+                }
+                if (fallbackId >= 10000) {
+                    // Last resort: use timestamp
+                    roomId = `fallback-${Date.now()}`;
+                } else {
+                    roomId = fallbackId;
+                }
+                console.log(`✅ Using fallback room ID: ${roomId}`);
+            }
+            
             participantName = (data && data.name) ? String(data.name).trim() : `Anonymous${Math.floor(Math.random() * 1000)}`;
             
             // Create room immediately
@@ -1200,34 +1219,59 @@ io.on('connection', (socket) => {
             
             console.log(`✅ Room ${roomId} created for ${participantName} (status: ${tempRoom.status})`);
             
-            // Send response IMMEDIATELY
-            if (serviceEnabled) {
-                const welcomeMessage = {
-                    id: Date.now(),
-                    text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
-                    sender: 'System',
-                    timestamp: new Date().toISOString(),
-                    isAdmin: false
-                };
-                tempRoom.messages.push(welcomeMessage);
-                saveData();
-                
-                socket.emit('room-assigned', { roomId, name: participantName });
-                console.log(`✅ IMMEDIATE RESPONSE SENT: room-assigned for room ${roomId}`);
-            } else {
-                socket.emit('knock-pending', { 
-                    message: "Knock received! Waiting for admin approval...",
-                    roomId: roomId
-                });
-                console.log(`✅ IMMEDIATE RESPONSE SENT: knock-pending for room ${roomId}`);
+            // Send response IMMEDIATELY - this MUST succeed
+            try {
+                if (serviceEnabled) {
+                    const welcomeMessage = {
+                        id: Date.now(),
+                        text: `Welcome ${participantName}! You can now chat with Rajendran D.`,
+                        sender: 'System',
+                        timestamp: new Date().toISOString(),
+                        isAdmin: false
+                    };
+                    tempRoom.messages.push(welcomeMessage);
+                    saveData();
+                    
+                    socket.emit('room-assigned', { roomId, name: participantName });
+                    console.log(`✅ IMMEDIATE RESPONSE SENT: room-assigned for room ${roomId}`);
+                } else {
+                    socket.emit('knock-pending', { 
+                        message: "Knock received! Waiting for admin approval...",
+                        roomId: roomId
+                    });
+                    console.log(`✅ IMMEDIATE RESPONSE SENT: knock-pending for room ${roomId}`);
+                }
+                clientResponseSent = true;
+            } catch (emitError) {
+                console.error('❌ CRITICAL: Failed to emit response:', emitError);
+                // Last resort: try to send ANY response
+                try {
+                    socket.emit('knock-pending', { 
+                        message: "Knock received! Processing...",
+                        roomId: roomId || 'unknown'
+                    });
+                    clientResponseSent = true;
+                    console.log('✅ Fallback response sent');
+                } catch (fallbackError) {
+                    console.error('❌ CRITICAL: Even fallback response failed:', fallbackError);
+                }
             }
-            clientResponseSent = true;
             
             // Now continue with validation and Telegram notification in background
             console.log('✅ Client response sent, continuing with background processing...');
         } catch (immediateError) {
             console.error('❌ CRITICAL: Failed to send immediate response:', immediateError);
             console.error('❌ Error stack:', immediateError.stack);
+            // Last resort: send error response
+            try {
+                socket.emit('knock-rejected', { 
+                    message: 'System error: Failed to create room. Please try again.',
+                    roomId: null
+                });
+                clientResponseSent = true;
+            } catch (finalError) {
+                console.error('❌ CRITICAL: Could not send any response to client:', finalError);
+            }
         }
         
         // Continue with validation and cleanup (room already created above)
