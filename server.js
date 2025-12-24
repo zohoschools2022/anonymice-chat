@@ -1167,7 +1167,10 @@ io.on('connection', (socket) => {
     });
 
     // Handle participant knock - COMPLETE REWRITE: Simple, bulletproof logic
+    // Register knock handler - this MUST happen for every connection
     console.log('📝 Registering knock handler for socket:', socket.id);
+    console.log('📝 Handler registration timestamp:', new Date().toISOString());
+    
     socket.on('knock', (data) => {
         console.log('🔔 ========== KNOCK RECEIVED ==========');
         console.log('🔔 Socket ID:', socket.id);
@@ -1924,10 +1927,16 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
+    console.log('='.repeat(80));
     console.log(`🚀 Anonymice server running on port ${PORT}`);
     console.log(`🔐 ADMIN URL: https://web-production-8d6b4.up.railway.app/admin/${ADMIN_URL}`);
     console.log(`🚪 Knock URL: https://web-production-8d6b4.up.railway.app/knock`);
+    console.log(`🧪 Test endpoint: https://web-production-8d6b4.up.railway.app/test`);
+    console.log(`📡 Socket.IO initialized: ${io ? 'YES' : 'NO'}`);
+    console.log(`📊 Current rooms: ${chatRooms.size}`);
+    console.log(`🔌 Service enabled: ${serviceEnabled}`);
     console.log('='.repeat(80));
+    console.log('✅ Server is ready to accept connections!');
     
     // Set up periodic check for inactive users (every minute)
     setInterval(() => {
