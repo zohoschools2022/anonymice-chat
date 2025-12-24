@@ -1230,22 +1230,34 @@ io.on('connection', (socket) => {
         
         console.log(`✅ Successfully created and verified room ${roomId} for ${participantName} (pending approval)`);
         
-        // IMPORTANT: Send response to client IMMEDIATELY after room creation
-        // This ensures the client knows the room was created, even if bot creation fails
-        if (!serviceEnabled) {
-            console.log('🚫 Knock received but service is disabled - waiting for admin approval');
-            socket.emit('knock-pending', { 
-                message: "Knock received! Waiting for admin approval...",
-                roomId: roomId
-            });
-        } else {
-            // Service is enabled - activate room and notify client
-            const newRoom = chatRooms.get(roomId);
-            if (newRoom) {
+        // CRITICAL: Send response to client IMMEDIATELY after room creation
+        // This MUST happen before any async operations to ensure client always gets a response
+        try {
+            if (!serviceEnabled) {
+                console.log('🚫 Knock received but service is disabled - waiting for admin approval');
+                socket.emit('knock-pending', { 
+                    message: "Knock received! Waiting for admin approval...",
+                    roomId: roomId
+                });
+                console.log(`✅ Sent knock-pending to client for room ${roomId}`);
+            } else {
+                // Service is enabled - activate room and notify client immediately
+                const newRoom = chatRooms.get(roomId);
+                if (!newRoom) {
+                    throw new Error(`Room ${roomId} not found after creation!`);
+                }
+                
                 newRoom.status = 'active';
                 newRoom.lastActivity = Date.now();
                 participantRooms.set(participantName, roomId);
                 socket.join(`room-${roomId}`);
+                
+                // Update connection mapping
+                activeConnections.set(socket.id, {
+                    type: 'participant',
+                    name: participantName,
+                    roomId: roomId
+                });
                 
                 const welcomeMessage = {
                     id: Date.now(),
@@ -1257,9 +1269,30 @@ io.on('connection', (socket) => {
                 newRoom.messages.push(welcomeMessage);
                 saveData();
                 
+                // CRITICAL: Send response to client
                 socket.emit('room-assigned', { roomId, name: participantName });
+                console.log(`✅ Sent room-assigned to client for room ${roomId}`);
                 console.log(`🆕 Activated room ${roomId} for ${participantName}`);
+                
+                // Notify admin
+                const adminEvent = {
+                    roomId,
+                    participant: { name: participantName }
+                };
+                const adminRoom = io.sockets.adapter.rooms.get('admin-room');
+                if (adminRoom && adminRoom.size > 0) {
+                    io.to('admin-room').emit('new-participant', adminEvent);
+                    console.log('✅ new-participant event sent to admin-room');
+                }
             }
+        } catch (responseError) {
+            console.error('❌ CRITICAL: Failed to send response to client:', responseError);
+            // Last resort: try to send any response
+            socket.emit('knock-rejected', { 
+                message: 'System error: Failed to process room creation. Please try again.',
+                roomId: null
+            });
+            return; // Exit early if we can't send response
         }
         
         // Create a dedicated bot for this conversation (async - doesn't block client response)

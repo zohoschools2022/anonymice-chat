@@ -55,8 +55,11 @@
             }, 2000);
         });
     
+        // Removed: no-rooms-available event (rooms are now unlimited)
+        // If you see this error, it means the server failed to create a room
         socket.on('no-rooms-available', () => {
-            showStatus('❌ No rooms available. Please try again later.', 'error');
+            console.error('⚠️ Received no-rooms-available event - this should not happen with unlimited rooms');
+            showStatus('❌ System error: Failed to create room. Please try again.', 'error');
         });
 
         socket.on('service-disabled', (data) => {
