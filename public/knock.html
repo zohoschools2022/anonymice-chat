@@ -68,9 +68,28 @@
                 clearTimeout(responseTimeout);
             };
             
-            socket.once('room-assigned', clearTimeoutOnResponse);
-            socket.once('knock-pending', clearTimeoutOnResponse);
-            socket.once('knock-rejected', clearTimeoutOnResponse);
+            socket.once('knock-acknowledged', () => {
+                console.log('✅ Server acknowledged - handler is running');
+                clearTimeout(responseTimeout);
+                // Set a new timeout for the actual response
+                setTimeout(() => {
+                    console.error('❌ No room response received after acknowledgment');
+                    showStatus('❌ Server received knock but no room assigned. Please try again.', 'error');
+                }, 5000);
+            });
+            
+            socket.once('room-assigned', (data) => {
+                clearTimeout(responseTimeout);
+                console.log('✅ Received room-assigned:', data);
+            });
+            socket.once('knock-pending', (data) => {
+                clearTimeout(responseTimeout);
+                console.log('✅ Received knock-pending:', data);
+            });
+            socket.once('knock-rejected', (data) => {
+                clearTimeout(responseTimeout);
+                console.log('✅ Received knock-rejected:', data);
+            });
             
             socket.emit('knock', { name });
         });
@@ -98,14 +117,25 @@
             }, 2000);
         });
     
-        // REMOVED: no-rooms-available listener (server never emits this anymore)
-        // If you see "No rooms available" error, it's likely a connection issue
+        // REMOVED: no-rooms-available listener completely
+        // This event should NEVER be received - if it is, there's a bug
+        socket.on('no-rooms-available', () => {
+            console.error('🚨 BUG DETECTED: Received no-rooms-available event!');
+            console.error('🚨 This should NEVER happen - server code may be outdated');
+            console.error('🚨 Please check server logs and ensure latest code is deployed');
+            showStatus('❌ Server error: Please contact admin. Error code: NO_ROOMS_BUG', 'error');
+        });
 
         socket.on('service-disabled', (data) => {
             showStatus(`🐱 ${data.message}`, 'error');
         });
 
+        socket.on('knock-acknowledged', (data) => {
+            console.log('✅ Server acknowledged knock:', data);
+        });
+        
         socket.on('knock-pending', (data) => {
+            console.log('✅ Received knock-pending:', data);
             showStatus(`⏳ ${data.message}`, 'info');
         });
 

@@ -1118,6 +1118,14 @@ io.on('connection', (socket) => {
 
     // Handle participant knock - COMPLETE REWRITE: Simple, bulletproof logic
     socket.on('knock', (data) => {
+        // CRITICAL: Send acknowledgment immediately to prove handler is running
+        try {
+            socket.emit('knock-acknowledged', { received: true, timestamp: Date.now() });
+            console.log('✅ Sent immediate acknowledgment to client');
+        } catch (ackErr) {
+            console.error('❌ CRITICAL: Failed to send acknowledgment:', ackErr);
+        }
+        
         console.log('🔔 ========== KNOCK RECEIVED ==========');
         console.log('🔔 Data:', JSON.stringify(data));
         console.log('🔔 Socket ID:', socket.id);
