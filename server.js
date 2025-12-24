@@ -678,6 +678,16 @@ console.log('📂 File persistence enabled');
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Test endpoint to verify server is running
+app.get('/test', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        rooms: chatRooms.size,
+        serviceEnabled: serviceEnabled
+    });
+});
+
 // Routes
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -1046,10 +1056,12 @@ app.post('/admin-notifications', express.json({ limit: '10kb' }), async (req, re
 
 
 // Socket.IO connection handling
+console.log('📡 Socket.IO server initialized and listening for connections...');
 io.on('connection', (socket) => {
     console.log('🔌 ========== NEW SOCKET CONNECTION ==========');
     console.log('🔌 Socket ID:', socket.id);
     console.log('🔌 Socket connected:', socket.connected);
+    console.log('🔌 Total active connections:', io.sockets.sockets.size);
     console.log('🔌 Socket handshake:', {
         address: socket.handshake.address,
         headers: socket.handshake.headers,
